@@ -1,0 +1,54 @@
+#ifndef TLB_CORE_H
+#define TLB_CORE_H
+
+#include <assert.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+#ifdef __cplusplus /* C++ */
+#  define TLB_EXTERN_C_BEGIN extern "C" {
+#  define TLB_EXTERN_C_END }
+#else /* C */
+#  define TLB_EXTERN_C_BEGIN
+#  define TLB_EXTERN_C_END
+#endif /* C/C++ */
+
+enum {
+  TLB_SUCCESS = 0,
+  TLB_FAIL = -1,
+};
+
+#define TLB_BIT(b) (1ull << (b))
+
+#define TLB_ASSERT assert
+#define TLB_CONTAINER_OF(ptr, type, member) (void *)(((uint8_t *)(ptr)) - offsetof(type, member))
+
+#define TLB_CHECK_HANDLE(checker, expr, handle) \
+  ({                                            \
+    typeof(expr) _ = (expr);                    \
+    if (!(checker _)) {                         \
+      handle;                                   \
+    }                                           \
+    _;                                          \
+  })
+#define TLB_CHECK_RETURN(checker, expr, ret_value) TLB_CHECK_HANDLE(checker, (expr), return (ret_value))
+/* NOLINTNEXTLINE(bugprone-macro-parentheses) */
+#define TLB_CHECK_GOTO(checker, expr, label) TLB_CHECK_HANDLE(checker, (expr), goto label)
+#define TLB_CHECK(checker, expr) TLB_CHECK_RETURN(checker, (expr), _)
+
+#define TLB_MIN(a, b)   \
+  ({                    \
+    typeof(a) _a = (a); \
+    typeof(b) _b = (b); \
+    _a < _b ? _a : _b;  \
+  })
+#define TLB_MAX(a, b)   \
+  ({                    \
+    typeof(a) _a = (a); \
+    typeof(b) _b = (b); \
+    _a > _b ? _a : _b;  \
+  })
+
+#endif /* TLB_CORE_H */
