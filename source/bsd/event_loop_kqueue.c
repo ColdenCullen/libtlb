@@ -119,7 +119,7 @@ int tlb_fd_unsubscribe(struct tlb_event_loop *loop, struct tlb_subscription *sub
  **********************************************************************************************************************/
 
 int tlb_trigger_add(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
-  sub->ident = (int)sub;
+  sub->ident = (uintptr_t)sub;
 
   struct kevent change;
   EV_SET(&change,           /* kev */

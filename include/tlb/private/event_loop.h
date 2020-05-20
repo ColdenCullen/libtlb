@@ -11,7 +11,7 @@ struct tlb_event_loop {
 };
 
 struct tlb_subscription {
-  int ident;
+  uintptr_t ident;
   int events;
 
   tlb_on_event *on_event;
