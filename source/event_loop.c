@@ -1,6 +1,6 @@
-#include "event_loop.h"
-
 #include <tlb/core.h>
+
+#include <tlb/private/event_loop.h>
 
 struct tlb_event_loop *tlb_event_loop_new(struct tlb_allocator *alloc) {
   struct tlb_event_loop *loop = TLB_CHECK(NULL !=, tlb_calloc(alloc, 1, sizeof(struct tlb_event_loop)));

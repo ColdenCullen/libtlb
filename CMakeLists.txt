@@ -13,7 +13,6 @@ endif()
 add_library(${PROJECT_NAME} ${TLB_SOURCES} ${TLB_SOURCES_PLATFORM})
 set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD 11)
 target_include_directories(${PROJECT_NAME} PUBLIC include)
-target_include_directories(${PROJECT_NAME} PRIVATE source)
 
 include(CTest)
 if(BUILD_TESTING)
