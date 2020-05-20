@@ -4,6 +4,10 @@
 #include <sys/event.h>
 #include <unistd.h>
 
+/**********************************************************************************************************************
+ * Helpers                                                                                                            *
+ **********************************************************************************************************************/
+
 static int s_events_from_kevent(const struct kevent *kevent) {
   int ev = 0;
 
@@ -30,6 +34,10 @@ static int s_events_from_kevent(const struct kevent *kevent) {
   return ev;
 }
 
+/**********************************************************************************************************************
+ * Event Loop                                                                                                         *
+ **********************************************************************************************************************/
+
 int tlb_ev_init(struct tlb_event_loop *loop) {
   loop->ident = TLB_CHECK(-1 !=, kqueue());
 
@@ -42,6 +50,10 @@ void tlb_ev_cleanup(struct tlb_event_loop *loop) {
     loop->ident = 0;
   }
 }
+
+/**********************************************************************************************************************
+ * FDs                                                                                                                *
+ **********************************************************************************************************************/
 
 int tlb_fd_subscribe(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
   struct kevent cl[2];
@@ -72,7 +84,7 @@ int tlb_fd_subscribe(struct tlb_event_loop *loop, struct tlb_subscription *sub) 
 
   return 0;
 }
-int tlb_evnet_loop_unsubscribe(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
+int tlb_fd_unsubscribe(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
   struct kevent cl[2];
   int num_changes = 0;
 
@@ -102,6 +114,10 @@ int tlb_evnet_loop_unsubscribe(struct tlb_event_loop *loop, struct tlb_subscript
   return 0;
 }
 
+/**********************************************************************************************************************
+ * Triggers                                                                                                           *
+ **********************************************************************************************************************/
+
 int tlb_trigger_add(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
   sub->ident = (int)sub;
 
@@ -128,7 +144,6 @@ int tlb_trigger_remove(struct tlb_event_loop *loop, struct tlb_subscription *sub
   );
   return kevent(loop->ident, &change, 1, NULL, 0, NULL);
 }
-
 int tlb_trigger_fire(struct tlb_event_loop *loop, tlb_handle trigger) {
   struct tlb_subscription *sub = trigger;
   struct kevent change;
@@ -142,6 +157,10 @@ int tlb_trigger_fire(struct tlb_event_loop *loop, tlb_handle trigger) {
   );
   return kevent(loop->ident, &change, 1, NULL, 0, NULL);
 }
+
+/**********************************************************************************************************************
+ * Handle events                                                                                                      *
+ **********************************************************************************************************************/
 
 int tlb_event_loop_handle_events(struct tlb_event_loop *loop, size_t budget) {
   struct kevent eventlist[TLB_EV_EVENT_BATCH];

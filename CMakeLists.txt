@@ -1,10 +1,9 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.10)
 
-project(tlb LANGUAGES C CXX)
+project(tlb LANGUAGES C)
 
 file(GLOB TLB_SOURCES "source/*.c")
 
-message(STATUS "PLATFORM: ${CMAKE_SYSTEM_NAME}")
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   file(GLOB TLB_SOURCES_PLATFORM "source/linux/*.c")
 elseif(CMAKE_SYSTEM_NAME MATCHES ".*BSD" OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
