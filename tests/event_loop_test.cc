@@ -109,4 +109,27 @@ TEST_F(EventLoopTest, PipeReadableWritable) {
   tlb_event_loop_unsubscribe(loop, write_sub);
 }
 
+TEST_F(EventLoopTest, Trigger) {
+  static const uint64_t s_test_value = 0x0BADFACE;
+
+  tlb_handle trigger = tlb_event_loop_trigger_add(
+      loop,
+      +[](tlb_handle handle, int events, void *userdata) {
+        EventLoopTest *t = static_cast<EventLoopTest *>(userdata);
+        t->completed = true;
+      },
+      this);
+
+  tlb_event_loop_handle_events(loop, 1);
+
+  EXPECT_FALSE(completed);
+
+  tlb_trigger_fire(loop, trigger);
+  tlb_event_loop_handle_events(loop, 1);
+
+  EXPECT_TRUE(completed);
+
+  tlb_event_loop_trigger_remove(loop, trigger);
+}
+
 }  // namespace tlb
