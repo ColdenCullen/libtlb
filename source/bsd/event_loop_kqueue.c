@@ -166,14 +166,16 @@ int tlb_event_loop_handle_events(struct tlb_event_loop *loop, size_t budget) {
   struct kevent eventlist[TLB_EV_EVENT_BATCH];
   int num_events;
 
+  static struct timespec s_timeout = {};
+
   do {
     num_events = TLB_MIN(budget, TLB_EV_EVENT_BATCH);
-    num_events = TLB_CHECK(-1 !=, kevent(loop->ident, NULL, 0, eventlist, num_events, NULL));
+    num_events = TLB_CHECK(-1 !=, kevent(loop->ident, NULL, 0, eventlist, num_events, &s_timeout));
     for (int ii = 0; ii < num_events; ii++) {
       const struct kevent *ev = &eventlist[ii];
       struct tlb_subscription *sub = ev->udata;
 
-      sub->on_event(s_events_from_kevent(ev), sub->userdata);
+      sub->on_event(sub, s_events_from_kevent(ev), sub->userdata);
 
       /* Resubscribe the event */
       tlb_fd_subscribe(loop, sub);

@@ -14,9 +14,9 @@ enum tlb_events {
   TLB_EV_ERROR = TLB_BIT(3),
 };
 
-typedef void tlb_on_event(int events, void *userdata);
-
 typedef void *tlb_handle;
+
+typedef void tlb_on_event(tlb_handle handle, int events, void *userdata);
 
 TLB_EXTERN_C_BEGIN
 
