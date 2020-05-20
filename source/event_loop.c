@@ -31,7 +31,7 @@ static struct tlb_subscription *s_sub_new(struct tlb_event_loop *loop, tlb_on_ev
 tlb_handle tlb_event_loop_subscribe(struct tlb_event_loop *loop, int fd, int events, tlb_on_event *on_event,
                                     void *userdata) {
   struct tlb_subscription *sub = TLB_CHECK(NULL !=, s_sub_new(loop, on_event, userdata));
-  sub->ident = fd;
+  sub->ident.fd = fd;
   sub->events = events;
 
   TLB_CHECK_GOTO(0 ==, tlb_fd_subscribe(loop, sub), sub_failed);

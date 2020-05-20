@@ -5,13 +5,18 @@
 
 #include <tlb/event_loop.h>
 
+union tlb_ident {
+  int fd;
+  uintptr_t ident;
+};
+
 struct tlb_event_loop {
   struct tlb_allocator *alloc;
-  int ident;
+  int fd;
 };
 
 struct tlb_subscription {
-  uintptr_t ident;
+  union tlb_ident ident;
   int events;
 
   tlb_on_event *on_event;
