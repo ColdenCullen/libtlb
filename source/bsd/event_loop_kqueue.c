@@ -59,24 +59,32 @@ int tlb_fd_subscribe(struct tlb_event_loop *loop, struct tlb_subscription *sub) 
   struct kevent cl[2];
   int num_changes = 0;
 
+  int flags = EV_ADD;
+  if (sub->oneshot) {
+    flags |= EV_ONESHOT;
+  } else {
+    /* Never set edge triggered flag in oneshot mode, you'll drop events that occur while processing. */
+    flags |= EV_CLEAR;
+  }
+
   if (sub->events & TLB_EV_READ) {
-    EV_SET(&cl[num_changes++],  /* kev */
-           sub->ident.ident,    /* ident */
-           EVFILT_READ,         /* filter */
-           EV_ADD | EV_ONESHOT, /* flags */
-           0,                   /* fflags */
-           0,                   /* data */
-           sub                  /* udata */
+    EV_SET(&cl[num_changes++], /* kev */
+           sub->ident.ident,   /* ident */
+           EVFILT_READ,        /* filter */
+           flags,              /* flags */
+           0,                  /* fflags */
+           0,                  /* data */
+           sub                 /* udata */
     );
   }
   if (sub->events & TLB_EV_WRITE) {
-    EV_SET(&cl[num_changes++],  /* kev */
-           sub->ident.ident,    /* ident */
-           EVFILT_WRITE,        /* filter */
-           EV_ADD | EV_ONESHOT, /* flags */
-           0,                   /* fflags */
-           0,                   /* data */
-           sub                  /* udata */
+    EV_SET(&cl[num_changes++], /* kev */
+           sub->ident.ident,   /* ident */
+           EVFILT_WRITE,       /* filter */
+           flags,              /* flags */
+           0,                  /* fflags */
+           0,                  /* data */
+           sub                 /* udata */
     );
   }
 
@@ -178,7 +186,9 @@ int tlb_event_loop_handle_events(struct tlb_event_loop *loop, size_t budget) {
       sub->on_event(sub, s_events_from_kevent(ev), sub->userdata);
 
       /* Resubscribe the event */
-      tlb_fd_subscribe(loop, sub);
+      if (sub->oneshot) {
+        tlb_fd_subscribe(loop, sub);
+      }
     }
     budget -= num_events;
   } while (num_events == TLB_EV_EVENT_BATCH && budget > 0);

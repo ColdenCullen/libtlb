@@ -18,6 +18,7 @@ struct tlb_event_loop {
 struct tlb_subscription {
   union tlb_ident ident;
   int events;
+  bool oneshot;
 
   tlb_on_event *on_event;
   void *userdata;

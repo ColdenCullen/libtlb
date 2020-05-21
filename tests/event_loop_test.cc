@@ -101,7 +101,7 @@ TEST_F(EventLoopTest, PipeReadableWritable) {
   // Run the write event
   tlb_event_loop_handle_events(loop, 1);
   // Run the read event
-  tlb_event_loop_handle_events(loop, 1);
+  tlb_event_loop_handle_events(loop, 2);
 
   EXPECT_TRUE(completed);
 
