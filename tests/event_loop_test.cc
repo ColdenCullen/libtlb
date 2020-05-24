@@ -211,9 +211,9 @@ TEST_F(EventLoopPipeTest, PipeReadableWritable) {
   EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
 }
 
-TEST_F(EventLoopPipeTest, Trigger) {
+TEST_F(EventLoopTest, Trigger) {
   struct TestState {
-    EventLoopPipeTest *test = nullptr;
+    EventLoopTest *test = nullptr;
     bool triggered = false;
   } state;
   state.test = this;
@@ -233,6 +233,37 @@ TEST_F(EventLoopPipeTest, Trigger) {
   ASSERT_EQ(0, tlb_evl_trigger_fire(loop, trigger));
   EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
   EXPECT_TRUE(state.triggered);
+}
+
+TEST_F(EventLoopTest, TriggerUnsubscribe) {
+  struct TestState {
+    EventLoopTest *test = nullptr;
+    bool triggered = false;
+  } state;
+  state.test = this;
+
+  tlb_handle trigger = tlb_evl_add_trigger(
+      loop,
+      +[](tlb_handle handle, int events, void *userdata) {
+        TestState *state = static_cast<TestState *>(userdata);
+        state->triggered = true;
+      },
+      &state);
+  ASSERT_NE(nullptr, trigger);
+
+  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_FALSE(state.triggered);
+
+  ASSERT_EQ(0, tlb_evl_trigger_fire(loop, trigger));
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_TRUE(state.triggered);
+
+  // Make sure no more events show up after unsubscribing
+  state.triggered = false;
+  ASSERT_EQ(0, tlb_evl_remove(loop, trigger));
+
+  EXPECT_EQ(0, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_FALSE(state.triggered);
 }
 
 class EventLoopSubLoopTest : public EventLoopPipeTest {
