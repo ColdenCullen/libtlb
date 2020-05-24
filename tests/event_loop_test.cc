@@ -15,27 +15,41 @@ class EventLoopTest : public ::testing::Test {
   void SetUp() override {
     alloc = tlb::test_allocator();
     loop = tlb_evl_new(alloc);
-    tlb_pipe_open(&pipe);
   }
 
   void TearDown() override {
-    tlb_pipe_close(&pipe);
     tlb_evl_destroy(loop);
   }
 
   tlb_allocator *alloc = nullptr;
   tlb_event_loop *loop = nullptr;
-  tlb_pipe pipe;
 };
 
 TEST_F(EventLoopTest, CreateDestroy) {
 }
 
-TEST_F(EventLoopTest, PipeReadable) {
+class EventLoopPipeTest : public EventLoopTest {
+ public:
+  void SetUp() override {
+    tlb_pipe_open(&pipe);
+
+    EventLoopTest::SetUp();
+  }
+
+  void TearDown() override {
+    tlb_pipe_close(&pipe);
+
+    EventLoopTest::TearDown();
+  }
+
+  tlb_pipe pipe;
+};
+
+TEST_F(EventLoopPipeTest, PipeReadable) {
   static const uint64_t s_test_value = 0x0BADFACE;
 
   struct TestState {
-    EventLoopTest *test = nullptr;
+    EventLoopPipeTest *test = nullptr;
     bool read = false;
   } state;
   state.test = this;
@@ -58,11 +72,11 @@ TEST_F(EventLoopTest, PipeReadable) {
   EXPECT_TRUE(state.read);
 }
 
-TEST_F(EventLoopTest, PipeWritable) {
+TEST_F(EventLoopPipeTest, PipeWritable) {
   static const uint64_t s_test_value = 0x0BADFACE;
 
   struct TestState {
-    EventLoopTest *test = nullptr;
+    EventLoopPipeTest *test = nullptr;
     bool wrote = false;
   } state;
   state.test = this;
@@ -86,11 +100,11 @@ TEST_F(EventLoopTest, PipeWritable) {
   EXPECT_TRUE(state.wrote);
 }
 
-TEST_F(EventLoopTest, PipeReadableWritable) {
+TEST_F(EventLoopPipeTest, PipeReadableWritable) {
   static const uint64_t s_test_value = 0x0BADFACE;
 
   struct TestState {
-    EventLoopTest *test = nullptr;
+    EventLoopPipeTest *test = nullptr;
     bool wrote = false;
     bool read = false;
   } state;
@@ -130,11 +144,11 @@ TEST_F(EventLoopTest, PipeReadableWritable) {
   EXPECT_TRUE(state.read);
 }
 
-TEST_F(EventLoopTest, Trigger) {
+TEST_F(EventLoopPipeTest, Trigger) {
   static const uint64_t s_test_value = 0x0BADFACE;
 
   struct TestState {
-    EventLoopTest *test = nullptr;
+    EventLoopPipeTest *test = nullptr;
     bool triggered = false;
   } state;
   state.test = this;
