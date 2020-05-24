@@ -77,6 +77,38 @@ TEST_F(EventLoopPipeTest, PipeReadable) {
   EXPECT_EQ(1, state.read_count);
 }
 
+TEST_F(EventLoopPipeTest, PipeReadableUnsubscribe) {
+  struct TestState {
+    EventLoopPipeTest *test = nullptr;
+    int read_count = 0;
+  } state;
+  state.test = this;
+
+  tlb_handle sub = tlb_evl_add_fd(
+      loop, pipe.fd_read, TLB_EV_READ,
+      +[](tlb_handle handle, int events, void *userdata) {
+        TestState *state = static_cast<TestState *>(userdata);
+        uint64_t value = 0;
+        tlb_pipe_read(&state->test->pipe, &value, sizeof(value));
+        EXPECT_EQ(s_test_value, value);
+        state->read_count++;
+      },
+      &state);
+  ASSERT_NE(nullptr, sub);
+
+  tlb_pipe_write(&pipe, &s_test_value, sizeof(s_test_value));
+
+  // Handle read
+  ASSERT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_EQ(1, state.read_count);
+
+  // Unsubscribe and ensure no more events show up
+  EXPECT_EQ(0, tlb_evl_remove(loop, sub));
+  tlb_pipe_write(&pipe, &s_test_value, sizeof(s_test_value));
+  EXPECT_EQ(0, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_EQ(1, state.read_count);
+}
+
 TEST_F(EventLoopPipeTest, PipeRereadable) {
   struct TestState {
     EventLoopPipeTest *test = nullptr;
