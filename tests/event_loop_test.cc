@@ -109,6 +109,26 @@ TEST_F(EventLoopPipeTest, PipeReadableUnsubscribe) {
   EXPECT_EQ(1, state.read_count);
 }
 
+TEST_F(EventLoopPipeTest, PipeUnsubscribe) {
+  struct TestState {
+    EventLoopPipeTest *test = nullptr;
+  } state;
+  state.test = this;
+
+  tlb_handle sub = tlb_evl_add_fd(
+      loop, pipe.fd_read, TLB_EV_READ,
+      +[](tlb_handle handle, int events, void *userdata) {
+        TestState *state = static_cast<TestState *>(userdata);
+        tlb_evl_remove(state->test->loop, handle);
+      },
+      &state);
+  ASSERT_NE(nullptr, sub);
+
+  tlb_pipe_write(&pipe, &s_test_value, sizeof(s_test_value));
+
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+}
+
 TEST_F(EventLoopPipeTest, PipeRereadable) {
   struct TestState {
     EventLoopPipeTest *test = nullptr;
@@ -321,7 +341,7 @@ TEST_F(EventLoopSubLoopTest, PipeReadable) {
 
 TEST_F(EventLoopSubLoopTest, PipeRereadable) {
   struct TestState {
-    EventLoopPipeTest *test = nullptr;
+    EventLoopSubLoopTest *test = nullptr;
     int read_count = 0;
   } state;
   state.test = this;
@@ -347,6 +367,27 @@ TEST_F(EventLoopSubLoopTest, PipeRereadable) {
   // Handle reread
   ASSERT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
   EXPECT_EQ(2, state.read_count);
+}
+
+TEST_F(EventLoopSubLoopTest, PipeUnsubscribe) {
+  struct TestState {
+    EventLoopSubLoopTest *test = nullptr;
+  } state;
+  state.test = this;
+
+  tlb_handle sub = tlb_evl_add_fd(
+      sub_loop, pipe.fd_read, TLB_EV_READ,
+      +[](tlb_handle handle, int events, void *userdata) {
+        TestState *state = static_cast<TestState *>(userdata);
+        tlb_evl_remove(state->test->sub_loop, handle);
+      },
+      &state);
+  ASSERT_NE(nullptr, sub);
+
+  tlb_pipe_write(&pipe, &s_test_value, sizeof(s_test_value));
+
+  // Handle read
+  ASSERT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
 }
 
 }  // namespace

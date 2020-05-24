@@ -152,11 +152,28 @@ int tlb_evl_handle_events(struct tlb_event_loop *loop, const size_t budget) {
       const struct kevent *ev = &eventlist[ii];
       struct tlb_subscription *sub = ev->udata;
 
+      sub->state = TLB_STATE_RUNNING;
       sub->on_event(sub, s_events_from_kevent(ev), sub->userdata);
 
-      /* Resubscribe the event */
-      if (sub->flags & TLB_SUB_ONESHOT) {
-        s_kqueue_change(loop, sub, EV_ENABLE);
+      switch (sub->state) {
+        case TLB_STATE_SUBBED:
+          /* Not possible */
+          TLB_ASSERT(false);
+          break;
+
+        case TLB_STATE_RUNNING:
+          /* Resubscribe the event */
+          if (sub->flags & TLB_SUB_ONESHOT) {
+            s_kqueue_change(loop, sub, EV_ENABLE);
+          }
+          sub->state = TLB_STATE_SUBBED;
+          break;
+
+        case TLB_STATE_UNSUBBED:
+          /* Force-remove the subscription */
+          sub->state = TLB_STATE_SUBBED;
+          tlb_evl_remove(loop, sub);
+          break;
       }
     }
     events_handled += num_events;

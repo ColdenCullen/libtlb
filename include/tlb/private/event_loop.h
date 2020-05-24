@@ -10,6 +10,12 @@ enum tlb_sub_flags {
   TLB_SUB_EDGE = TLB_BIT(1),
 };
 
+enum tlb_sub_state {
+  TLB_STATE_SUBBED,
+  TLB_STATE_RUNNING,
+  TLB_STATE_UNSUBBED,
+};
+
 union tlb_ident {
   int fd;
   uintptr_t ident;
@@ -27,6 +33,8 @@ struct tlb_subscription {
 
   tlb_on_event *on_event;
   void *userdata;
+
+  volatile uint8_t state; /* enum tlb_sub_state */
 
   /* Reserved for each platform to use */
   union {

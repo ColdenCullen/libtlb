@@ -97,9 +97,22 @@ static void s_sub_loop_on_event(tlb_handle subscription, int events, void *userd
 
 int tlb_evl_remove(struct tlb_event_loop *loop, tlb_handle subscription) {
   struct tlb_subscription *sub = subscription;
+  int result = 0;
 
-  int result = tlb_evl_impl_unsubscribe(loop, sub);
-  tlb_free(loop->alloc, sub);
+  switch (sub->state) {
+    case TLB_STATE_SUBBED:
+      result = tlb_evl_impl_unsubscribe(loop, sub);
+      tlb_free(loop->alloc, sub);
+      break;
+
+    case TLB_STATE_RUNNING:
+      sub->state = TLB_STATE_UNSUBBED;
+      break;
+
+    case TLB_STATE_UNSUBBED:
+      /* no-op */
+      break;
+  }
 
   return result;
 }
