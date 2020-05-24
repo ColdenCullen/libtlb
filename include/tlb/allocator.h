@@ -1,7 +1,7 @@
 #ifndef TLB_ALLOCATOR_H
 #define TLB_ALLOCATOR_H
 
-#include <tlb/core.h>
+#include "tlb/core.h"
 
 struct tlb_allocator {
   struct tlb_allocator_vtable {

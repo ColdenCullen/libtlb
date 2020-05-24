@@ -1,7 +1,7 @@
 #ifndef TLB_PIPE_H
 #define TLB_PIPE_H
 
-#include <tlb/core.h>
+#include "tlb/core.h"
 
 struct tlb_pipe {
   union {

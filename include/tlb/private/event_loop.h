@@ -1,9 +1,9 @@
 #ifndef EVENT_LOOP_H /* NOLINT(llvm-header-guard) */
 #define EVENT_LOOP_H
 
-#include <tlb/core.h>
+#include "tlb/event_loop.h"
 
-#include <tlb/event_loop.h>
+#include "tlb/core.h"
 
 enum tlb_sub_flags {
   TLB_SUB_ONESHOT = TLB_BIT(0),

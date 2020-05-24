@@ -63,15 +63,16 @@ FixNamespaceComments: true
 ForEachMacros:
 IncludeBlocks:   Regroup
 IncludeCategories:
-  - Regex:           '^<tlb/core\.h>'
+  - Regex:           '^"tlb/core\.h"'
     Priority:        1
-  - Regex:           '^<tlb/.*\.h>'
+  - Regex:           '^"tlb/.*\.h"'
     Priority:        2
   - Regex:           '^<.*\.h>'
     Priority:        3
   - Regex:           '.*'
     Priority:        4
-IncludeIsMainRegex: '(_test)?$'
+IncludeIsMainRegex: '(_test)?'
+IncludeIsMainSourceRegex: 'tlb/(private/)?'
 IndentCaseLabels: true
 IndentGotoLabels: true
 IndentPPDirectives: AfterHash

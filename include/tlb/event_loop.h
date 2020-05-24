@@ -1,9 +1,7 @@
 #ifndef TLB_EVENT_LOOP_H
 #define TLB_EVENT_LOOP_H
 
-#include <tlb/core.h>
-
-#include <tlb/allocator.h>
+#include "tlb/allocator.h"
 
 struct tlb_event_loop;
 
