@@ -5,6 +5,11 @@
 
 #include <tlb/event_loop.h>
 
+enum tlb_sub_flags {
+  TLB_SUB_ONESHOT = TLB_BIT(0),
+  TLB_SUB_EDGE = TLB_BIT(1),
+};
+
 union tlb_ident {
   int fd;
   uintptr_t ident;
@@ -18,7 +23,7 @@ struct tlb_event_loop {
 struct tlb_subscription {
   union tlb_ident ident;
   int events;
-  bool oneshot;
+  int flags; /* enum tlb_sub_flags */
 
   tlb_on_event *on_event;
   void *userdata;

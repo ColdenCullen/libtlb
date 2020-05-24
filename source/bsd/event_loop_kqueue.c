@@ -60,10 +60,10 @@ int tlb_fd_subscribe(struct tlb_event_loop *loop, struct tlb_subscription *sub) 
   int num_changes = 0;
 
   int flags = EV_ADD;
-  if (sub->oneshot) {
+  if (sub->flags & TLB_SUB_ONESHOT) {
     flags |= EV_ONESHOT;
-  } else {
-    /* Never set edge triggered flag in oneshot mode, you'll drop events that occur while processing. */
+  }
+  if (sub->flags & TLB_SUB_EDGE) {
     flags |= EV_CLEAR;
   }
 
@@ -152,7 +152,7 @@ int tlb_trigger_remove(struct tlb_event_loop *loop, struct tlb_subscription *sub
   );
   return kevent(loop->fd, &change, 1, NULL, 0, NULL);
 }
-int tlb_trigger_fire(struct tlb_event_loop *loop, tlb_handle trigger) {
+int tlb_evl_trigger_fire(struct tlb_event_loop *loop, tlb_handle trigger) {
   struct tlb_subscription *sub = trigger;
   struct kevent change;
   EV_SET(&change,          /* kev */
@@ -170,10 +170,9 @@ int tlb_trigger_fire(struct tlb_event_loop *loop, tlb_handle trigger) {
  * Handle events                                                                                                      *
  **********************************************************************************************************************/
 
-int tlb_event_loop_handle_events(struct tlb_event_loop *loop, size_t budget) {
+int tlb_evl_handle_events(struct tlb_event_loop *loop, size_t budget) {
   struct kevent eventlist[TLB_EV_EVENT_BATCH];
   int num_events;
-
   static struct timespec s_timeout = {};
 
   do {
@@ -186,7 +185,7 @@ int tlb_event_loop_handle_events(struct tlb_event_loop *loop, size_t budget) {
       sub->on_event(sub, s_events_from_kevent(ev), sub->userdata);
 
       /* Resubscribe the event */
-      if (sub->oneshot) {
+      if (sub->flags & TLB_SUB_ONESHOT) {
         tlb_fd_subscribe(loop, sub);
       }
     }

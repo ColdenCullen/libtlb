@@ -21,21 +21,20 @@ typedef void tlb_on_event(tlb_handle handle, int events, void *userdata);
 TLB_EXTERN_C_BEGIN
 
 /** Event loop lifecycle management */
-struct tlb_event_loop *tlb_event_loop_new(struct tlb_allocator *alloc);
-void tlb_event_loop_destroy(struct tlb_event_loop *loop);
+struct tlb_event_loop *tlb_evl_new(struct tlb_allocator *alloc);
+void tlb_evl_destroy(struct tlb_event_loop *loop);
 
 /** Subscribe a file descriptor to the event loop. */
-tlb_handle tlb_event_loop_subscribe(struct tlb_event_loop *loop, int fd, int events, tlb_on_event *on_event,
-                                    void *userdata);
-int tlb_event_loop_unsubscribe(struct tlb_event_loop *loop, tlb_handle subscription);
+tlb_handle tlb_evl_fd_add(struct tlb_event_loop *loop, int fd, int events, tlb_on_event *on_event, void *userdata);
+int tlb_evl_fd_remove(struct tlb_event_loop *loop, tlb_handle subscription);
 
 /** Add a user trigger to the event loop */
-tlb_handle tlb_event_loop_trigger_add(struct tlb_event_loop *loop, tlb_on_event *trigger, void *userdata);
-int tlb_event_loop_trigger_remove(struct tlb_event_loop *loop, tlb_handle trigger);
-int tlb_trigger_fire(struct tlb_event_loop *loop, tlb_handle trigger);
+tlb_handle tlb_evl_trigger_add(struct tlb_event_loop *loop, tlb_on_event *trigger, void *userdata);
+int tlb_evl_trigger_remove(struct tlb_event_loop *loop, tlb_handle trigger);
+int tlb_evl_trigger_fire(struct tlb_event_loop *loop, tlb_handle trigger);
 
 /** Handles up to budget pending events without waiting. */
-int tlb_event_loop_handle_events(struct tlb_event_loop *loop, size_t budget);
+int tlb_evl_handle_events(struct tlb_event_loop *loop, size_t budget);
 
 TLB_EXTERN_C_END
 
