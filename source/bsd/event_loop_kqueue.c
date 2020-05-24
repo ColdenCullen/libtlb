@@ -40,11 +40,13 @@ int s_kqueue_change(struct tlb_event_loop *loop, struct tlb_subscription *sub, u
   int num_changes = 0;
 
   /* Calculate flags */
-  if (sub->flags & TLB_SUB_ONESHOT) {
-    flags |= EV_DISPATCH;
-  }
-  if (sub->flags & TLB_SUB_EDGE) {
-    flags |= EV_CLEAR;
+  if (flags == EV_ADD) {
+    if (sub->flags & TLB_SUB_ONESHOT) {
+      flags |= EV_DISPATCH;
+    }
+    if (sub->flags & TLB_SUB_EDGE) {
+      flags |= EV_CLEAR;
+    }
   }
 
   for (size_t ii = 0; ii < TLB_ARRAY_LENGTH(sub->platform.kqueue.filters); ++ii) {
@@ -61,9 +63,7 @@ int s_kqueue_change(struct tlb_event_loop *loop, struct tlb_subscription *sub, u
     }
   }
 
-  TLB_CHECK(-1 !=, kevent(loop->fd, cl, num_changes, NULL, 0, 0));
-
-  return 0;
+  return kevent(loop->fd, cl, num_changes, NULL, 0, NULL);
 }
 
 /**********************************************************************************************************************
