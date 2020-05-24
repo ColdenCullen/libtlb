@@ -253,6 +253,77 @@ TEST_F(EventLoopTest, Trigger) {
   ASSERT_EQ(0, tlb_evl_trigger_fire(loop, trigger));
   EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
   EXPECT_TRUE(state.triggered);
+  state.triggered = false;
+
+  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_FALSE(state.triggered);
+
+  ASSERT_EQ(0, tlb_evl_trigger_fire(loop, trigger));
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_TRUE(state.triggered);
+}
+
+TEST_F(EventLoopTest, MultiTrigger) {
+  struct TestState {
+    EventLoopTest *test = nullptr;
+    bool triggered = false;
+  } state;
+  state.test = this;
+
+  tlb_handle trigger = tlb_evl_add_trigger(
+      loop,
+      +[](tlb_handle handle, int events, void *userdata) {
+        TestState *state = static_cast<TestState *>(userdata);
+        state->triggered = true;
+      },
+      &state);
+  ASSERT_NE(nullptr, trigger);
+
+  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_FALSE(state.triggered);
+
+  // Fire trigger twice
+  ASSERT_EQ(0, tlb_evl_trigger_fire(loop, trigger));
+  ASSERT_EQ(0, tlb_evl_trigger_fire(loop, trigger));
+
+  // Make sure only one event goes
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_TRUE(state.triggered);
+}
+
+TEST_F(EventLoopTest, RecursiveTrigger) {
+  struct TestState {
+    EventLoopTest *test = nullptr;
+    bool triggered = false;
+  } state;
+  state.test = this;
+
+  tlb_handle trigger = tlb_evl_add_trigger(
+      loop,
+      +[](tlb_handle handle, int events, void *userdata) {
+        TestState *state = static_cast<TestState *>(userdata);
+        // Refire trigger on first go
+        if (!state->triggered) {
+          state->triggered = true;
+          ASSERT_EQ(0, tlb_evl_trigger_fire(state->test->loop, handle));
+        }
+      },
+      &state);
+  ASSERT_NE(nullptr, trigger);
+
+  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_FALSE(state.triggered);
+
+  // Fire the trigger
+  ASSERT_EQ(0, tlb_evl_trigger_fire(loop, trigger));
+
+  // Make sure only one event goes
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_TRUE(state.triggered);
+
+  // Make sure the other event fires
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_TRUE(state.triggered);
 }
 
 TEST_F(EventLoopTest, TriggerUnsubscribe) {
