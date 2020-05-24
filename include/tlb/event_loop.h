@@ -16,6 +16,9 @@ typedef void *tlb_handle;
 
 typedef void tlb_on_event(tlb_handle handle, int events, void *userdata);
 
+#define TLB_WAIT_NONE ((int)0)
+#define TLB_WAIT_INDEFINITE ((int)-1)
+
 TLB_EXTERN_C_BEGIN
 
 /** Event loop lifecycle management */
@@ -35,8 +38,8 @@ tlb_handle tlb_evl_add_evl(struct tlb_event_loop *loop, struct tlb_event_loop *s
 /* All unsubscribe implementations are the same */
 int tlb_evl_remove(struct tlb_event_loop *loop, tlb_handle subscription);
 
-/** Handles up to budget pending events without waiting. */
-int tlb_evl_handle_events(struct tlb_event_loop *loop, size_t budget);
+/** Handles up to budget events, waiting for up to timeout milliseconds (or 0 to not wait, or -1 to wait forever) */
+int tlb_evl_handle_events(struct tlb_event_loop *loop, size_t budget, int timeout);
 
 TLB_EXTERN_C_END
 

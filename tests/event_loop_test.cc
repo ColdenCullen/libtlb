@@ -26,7 +26,7 @@ class EventLoopTest : public ::testing::Test {
 
   void TearDown() override {
     // Make sure there are no leftover events
-    EXPECT_EQ(0, tlb_evl_handle_events(loop, s_event_budget));
+    EXPECT_EQ(0, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
 
     tlb_evl_destroy(loop);
   }
@@ -76,7 +76,7 @@ TEST_F(EventLoopPipeTest, PipeReadable) {
 
   tlb_pipe_write(&pipe, &s_test_value, sizeof(s_test_value));
 
-  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_EQ(1, state.read_count);
 }
 
@@ -102,13 +102,13 @@ TEST_F(EventLoopPipeTest, PipeReadableUnsubscribe) {
   tlb_pipe_write(&pipe, &s_test_value, sizeof(s_test_value));
 
   // Handle read
-  ASSERT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  ASSERT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_EQ(1, state.read_count);
 
   // Unsubscribe and ensure no more events show up
   EXPECT_EQ(0, tlb_evl_remove(loop, sub));
   tlb_pipe_write(&pipe, &s_test_value, sizeof(s_test_value));
-  EXPECT_EQ(0, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_EQ(0, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_EQ(1, state.read_count);
 }
 
@@ -129,7 +129,7 @@ TEST_F(EventLoopPipeTest, PipeUnsubscribe) {
 
   tlb_pipe_write(&pipe, &s_test_value, sizeof(s_test_value));
 
-  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
 }
 
 TEST_F(EventLoopPipeTest, PipeRereadable) {
@@ -155,10 +155,10 @@ TEST_F(EventLoopPipeTest, PipeRereadable) {
   tlb_pipe_write(&pipe, &s_test_value, sizeof(s_test_value));
 
   // Handle read
-  ASSERT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  ASSERT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_EQ(1, state.read_count);
   // Handle re-read
-  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_EQ(2, state.read_count);
 }
 
@@ -181,7 +181,7 @@ TEST_F(EventLoopPipeTest, PipeWritable) {
       &state);
   ASSERT_NE(nullptr, sub);
 
-  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   ASSERT_TRUE(state.wrote);
 
   uint64_t value = 0;
@@ -222,16 +222,16 @@ TEST_F(EventLoopPipeTest, PipeReadableWritable) {
   ASSERT_NE(nullptr, write_sub);
 
   // Run the write event
-  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_TRUE(state.wrote);
   EXPECT_FALSE(state.read_count);
   // Run the read event (and re-writable event)
-  EXPECT_EQ(2, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_EQ(2, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_TRUE(state.wrote);
   EXPECT_EQ(1, state.read_count);
 
   // Run the re-readable event
-  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
 }
 
 TEST_F(EventLoopTest, Trigger) {
@@ -250,19 +250,19 @@ TEST_F(EventLoopTest, Trigger) {
       &state);
   ASSERT_NE(nullptr, trigger);
 
-  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget));
+  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_FALSE(state.triggered);
 
   ASSERT_EQ(0, tlb_evl_trigger_fire(loop, trigger));
-  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_TRUE(state.triggered);
   state.triggered = false;
 
-  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget));
+  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_FALSE(state.triggered);
 
   ASSERT_EQ(0, tlb_evl_trigger_fire(loop, trigger));
-  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_TRUE(state.triggered);
 }
 
@@ -282,7 +282,7 @@ TEST_F(EventLoopTest, MultiTrigger) {
       &state);
   ASSERT_NE(nullptr, trigger);
 
-  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget));
+  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_FALSE(state.triggered);
 
   // Fire trigger twice
@@ -290,7 +290,7 @@ TEST_F(EventLoopTest, MultiTrigger) {
   ASSERT_EQ(0, tlb_evl_trigger_fire(loop, trigger));
 
   // Make sure only one event goes
-  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_TRUE(state.triggered);
 }
 
@@ -314,18 +314,18 @@ TEST_F(EventLoopTest, RecursiveTrigger) {
       &state);
   ASSERT_NE(nullptr, trigger);
 
-  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget));
+  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_FALSE(state.triggered);
 
   // Fire the trigger
   ASSERT_EQ(0, tlb_evl_trigger_fire(loop, trigger));
 
   // Make sure only one event goes
-  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_TRUE(state.triggered);
 
   // Make sure the other event fires
-  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_TRUE(state.triggered);
 }
 
@@ -345,7 +345,7 @@ TEST_F(EventLoopTest, MultithreadedTrigger) {
       &state);
   ASSERT_NE(nullptr, trigger);
 
-  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget));
+  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_EQ(0, state.trigger_count);
 
   // Spawn all the threads to watch the trigger
@@ -353,8 +353,7 @@ TEST_F(EventLoopTest, MultithreadedTrigger) {
   for (auto &thread : threads) {
     thread = std::thread([&]() {
       // Run the thread until we receive an event
-      while (0 == tlb_evl_handle_events(loop, s_event_budget)) {
-      }
+      EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_INDEFINITE));
     });
   }
 
@@ -387,18 +386,18 @@ TEST_F(EventLoopTest, TriggerUnsubscribe) {
       &state);
   ASSERT_NE(nullptr, trigger);
 
-  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget));
+  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_FALSE(state.triggered);
 
   ASSERT_EQ(0, tlb_evl_trigger_fire(loop, trigger));
-  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_TRUE(state.triggered);
 
   // Make sure no more events show up after unsubscribing
   state.triggered = false;
   ASSERT_EQ(0, tlb_evl_remove(loop, trigger));
 
-  EXPECT_EQ(0, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_EQ(0, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_FALSE(state.triggered);
 }
 
@@ -413,7 +412,7 @@ class EventLoopSubLoopTest : public EventLoopPipeTest {
 
   void TearDown() override {
     // Ensure there aren't leftover events
-    ASSERT_EQ(0, tlb_evl_handle_events(sub_loop, s_event_budget));
+    ASSERT_EQ(0, tlb_evl_handle_events(sub_loop, s_event_budget, TLB_WAIT_NONE));
 
     tlb_evl_remove(loop, sub_loop_handle);
     tlb_evl_destroy(sub_loop);
@@ -451,7 +450,7 @@ TEST_F(EventLoopSubLoopTest, PipeReadable) {
   tlb_pipe_write(&pipe, &s_test_value, sizeof(s_test_value));
 
   // Handle read
-  ASSERT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  ASSERT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_EQ(1, state.read_count);
 }
 
@@ -478,10 +477,10 @@ TEST_F(EventLoopSubLoopTest, PipeRereadable) {
   tlb_pipe_write(&pipe, &s_test_value, sizeof(s_test_value));
 
   // Handle read
-  ASSERT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  ASSERT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_EQ(1, state.read_count);
   // Handle reread
-  ASSERT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  ASSERT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_EQ(2, state.read_count);
 }
 
@@ -503,7 +502,7 @@ TEST_F(EventLoopSubLoopTest, PipeUnsubscribe) {
   tlb_pipe_write(&pipe, &s_test_value, sizeof(s_test_value));
 
   // Handle read
-  ASSERT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  ASSERT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
 }
 
 TEST_F(EventLoopSubLoopTest, MultithreadedTrigger) {
@@ -522,7 +521,7 @@ TEST_F(EventLoopSubLoopTest, MultithreadedTrigger) {
       &state);
   ASSERT_NE(nullptr, trigger);
 
-  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget));
+  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_EQ(0, state.trigger_count);
 
   // Spawn all the threads to watch the trigger
@@ -530,8 +529,7 @@ TEST_F(EventLoopSubLoopTest, MultithreadedTrigger) {
   for (auto &thread : threads) {
     thread = std::thread([&]() {
       // Run the thread until we receive an event
-      while (0 == tlb_evl_handle_events(loop, s_event_budget)) {
-      }
+      ASSERT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_INDEFINITE));
     });
   }
 

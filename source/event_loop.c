@@ -88,7 +88,7 @@ static void s_sub_loop_on_event(tlb_handle subscription, int events, void *userd
   (void)events;
   struct tlb_event_loop *sub_loop = userdata;
 
-  tlb_evl_handle_events(sub_loop, TLB_EV_EVENT_BATCH);
+  tlb_evl_handle_events(sub_loop, TLB_EV_EVENT_BATCH, 0);
 }
 
 /**********************************************************************************************************************
