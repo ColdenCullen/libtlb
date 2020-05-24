@@ -5,12 +5,15 @@
 #include <gtest/gtest.h>
 
 #include "test_helpers.h"
+#include <array>
+#include <thread>
 
 namespace tlb {
 namespace {
 
 constexpr size_t s_event_budget = 100;
 constexpr uint64_t s_test_value = 0x0BADFACE;
+constexpr size_t s_thread_count = 2;
 
 class EventLoopTest : public ::testing::Test {
  public:
@@ -324,6 +327,48 @@ TEST_F(EventLoopTest, RecursiveTrigger) {
   // Make sure the other event fires
   EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
   EXPECT_TRUE(state.triggered);
+}
+
+TEST_F(EventLoopTest, MultithreadedTrigger) {
+  struct TestState {
+    EventLoopTest *test = nullptr;
+    std::atomic<size_t> trigger_count = {0};
+  } state;
+  state.test = this;
+
+  tlb_handle trigger = tlb_evl_add_trigger(
+      loop,
+      +[](tlb_handle handle, int events, void *userdata) {
+        TestState *state = static_cast<TestState *>(userdata);
+        state->trigger_count.fetch_add(1);
+      },
+      &state);
+  ASSERT_NE(nullptr, trigger);
+
+  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_EQ(0, state.trigger_count);
+
+  // Spawn all the threads to watch the trigger
+  std::array<std::thread, s_thread_count> threads;
+  for (auto &thread : threads) {
+    thread = std::thread([&]() {
+      // Run the thread until we receive an event
+      while (0 == tlb_evl_handle_events(loop, s_event_budget)) {
+      }
+    });
+  }
+
+  // Fire the trigger for each thread
+  for (size_t ii = 0; ii < threads.size(); ++ii) {
+    ASSERT_EQ(0, tlb_evl_trigger_fire(loop, trigger));
+    // Spin until the trigger count is updated
+    while (ii + 1 != state.trigger_count) {
+    }
+  }
+
+  for (auto &thread : threads) {
+    thread.join();
+  }
 }
 
 TEST_F(EventLoopTest, TriggerUnsubscribe) {
