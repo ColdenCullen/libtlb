@@ -49,8 +49,8 @@ int s_kqueue_change(struct tlb_event_loop *loop, struct tlb_subscription *sub, u
     }
   }
 
-  for (size_t ii = 0; ii < TLB_ARRAY_LENGTH(sub->platform.kqueue.filters); ++ii) {
-    const int16_t filter = sub->platform.kqueue.filters[ii];
+  for (size_t ii = 0; ii < TLB_ARRAY_LENGTH(sub->platform.kqueue); ++ii) {
+    const int16_t filter = sub->platform.kqueue[ii];
     if (filter) {
       EV_SET(&cl[num_changes++], /* kev */
              sub->ident.ident,   /* ident */
@@ -90,10 +90,10 @@ void tlb_evl_cleanup(struct tlb_event_loop *loop) {
 int tlb_evl_impl_fd_add(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
   size_t num_filters = 0;
   if (sub->events & TLB_EV_READ) {
-    sub->platform.kqueue.filters[num_filters++] = EVFILT_READ;
+    sub->platform.kqueue[num_filters++] = EVFILT_READ;
   }
   if (sub->events & TLB_EV_WRITE) {
-    sub->platform.kqueue.filters[num_filters++] = EVFILT_WRITE;
+    sub->platform.kqueue[num_filters++] = EVFILT_WRITE;
   }
 
   return s_kqueue_change(loop, sub, EV_ADD);
@@ -106,7 +106,7 @@ int tlb_evl_impl_fd_add(struct tlb_event_loop *loop, struct tlb_subscription *su
 int tlb_evl_impl_trigger_add(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
   sub->ident.ident = (uintptr_t)sub;
   sub->flags = TLB_SUB_EDGE;
-  sub->platform.kqueue.filters[0] = EVFILT_USER;
+  sub->platform.kqueue[0] = EVFILT_USER;
 
   return s_kqueue_change(loop, sub, EV_ADD);
 }

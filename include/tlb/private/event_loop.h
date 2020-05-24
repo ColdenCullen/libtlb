@@ -40,9 +40,7 @@ struct tlb_subscription {
   union {
     struct {
     } epoll;
-    struct {
-      int16_t filters[2];
-    } kqueue;
+    int16_t kqueue[2];
   } platform;
 };
 
