@@ -170,13 +170,16 @@ int tlb_evl_trigger_fire(struct tlb_event_loop *loop, tlb_handle trigger) {
  * Handle events                                                                                                      *
  **********************************************************************************************************************/
 
-int tlb_evl_handle_events(struct tlb_event_loop *loop, size_t budget) {
+int tlb_evl_handle_events(struct tlb_event_loop *loop, const size_t budget) {
   struct kevent eventlist[TLB_EV_EVENT_BATCH];
+  int events_handled = 0;
   int num_events;
-  static struct timespec s_timeout = {};
 
   do {
+    /* Calculate the maximum number of events to run */
     num_events = TLB_MIN(budget, TLB_EV_EVENT_BATCH);
+
+    static struct timespec s_timeout = {};
     num_events = TLB_CHECK(-1 !=, kevent(loop->fd, NULL, 0, eventlist, num_events, &s_timeout));
     for (int ii = 0; ii < num_events; ii++) {
       const struct kevent *ev = &eventlist[ii];
@@ -189,8 +192,9 @@ int tlb_evl_handle_events(struct tlb_event_loop *loop, size_t budget) {
         tlb_fd_subscribe(loop, sub);
       }
     }
-    budget -= num_events;
-  } while (num_events == TLB_EV_EVENT_BATCH && budget > 0);
+    events_handled += num_events;
+    /* Run as long as we're still doing full batch runs and we haven't hit budget */
+  } while (num_events == TLB_EV_EVENT_BATCH && (size_t)events_handled < budget);
 
-  return 0;
+  return events_handled;
 }

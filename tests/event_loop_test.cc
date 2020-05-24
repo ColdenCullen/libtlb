@@ -6,6 +6,9 @@
 #include "test_helpers.h"
 
 namespace tlb {
+namespace {
+
+constexpr size_t s_event_budget = 100;
 
 class EventLoopTest : public ::testing::Test {
  public:
@@ -23,8 +26,6 @@ class EventLoopTest : public ::testing::Test {
   tlb_allocator *alloc = nullptr;
   tlb_event_loop *loop = nullptr;
   tlb_pipe pipe;
-
-  bool completed = false;
 };
 
 TEST_F(EventLoopTest, CreateDestroy) {
@@ -33,103 +34,127 @@ TEST_F(EventLoopTest, CreateDestroy) {
 TEST_F(EventLoopTest, PipeReadable) {
   static const uint64_t s_test_value = 0x0BADFACE;
 
+  struct TestState {
+    EventLoopTest *test = nullptr;
+    bool read = false;
+  } state;
+  state.test = this;
+
   tlb_handle sub = tlb_evl_fd_add(
       loop, pipe.fd_read, TLB_EV_READ,
       +[](tlb_handle handle, int events, void *userdata) {
-        EventLoopTest *t = static_cast<EventLoopTest *>(userdata);
+        TestState *state = static_cast<TestState *>(userdata);
         uint64_t value = 0;
-        read(t->pipe.fd_read, &value, sizeof(value));
+        read(state->test->pipe.fd_read, &value, sizeof(value));
         EXPECT_EQ(s_test_value, value);
-        t->completed = true;
+        state->read = true;
       },
-      this);
+      &state);
+  ASSERT_NE(nullptr, sub);
 
   write(pipe.fd_write, &s_test_value, sizeof(s_test_value));
 
-  tlb_evl_handle_events(loop, 1);
-
-  EXPECT_TRUE(completed);
-
-  tlb_evl_fd_remove(loop, sub);
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_TRUE(state.read);
 }
 
 TEST_F(EventLoopTest, PipeWritable) {
   static const uint64_t s_test_value = 0x0BADFACE;
 
+  struct TestState {
+    EventLoopTest *test = nullptr;
+    bool wrote = false;
+  } state;
+  state.test = this;
+
   tlb_handle sub = tlb_evl_fd_add(
       loop, pipe.fd_write, TLB_EV_WRITE,
       +[](tlb_handle handle, int events, void *userdata) {
-        EventLoopTest *t = static_cast<EventLoopTest *>(userdata);
-        write(t->pipe.fd_write, &s_test_value, sizeof(s_test_value));
-        t->completed = true;
+        TestState *state = static_cast<TestState *>(userdata);
+        write(state->test->pipe.fd_write, &s_test_value, sizeof(s_test_value));
+        state->wrote = true;
       },
-      this);
+      &state);
+  ASSERT_NE(nullptr, sub);
 
-  tlb_evl_handle_events(loop, 1);
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
 
   uint64_t value = 0;
   read(pipe.fd_read, &value, sizeof(value));
   EXPECT_EQ(s_test_value, value);
 
-  EXPECT_TRUE(completed);
-
-  tlb_evl_fd_remove(loop, sub);
+  EXPECT_TRUE(state.wrote);
 }
 
 TEST_F(EventLoopTest, PipeReadableWritable) {
   static const uint64_t s_test_value = 0x0BADFACE;
 
+  struct TestState {
+    EventLoopTest *test = nullptr;
+    bool wrote = false;
+    bool read = false;
+  } state;
+  state.test = this;
+
   tlb_handle read_sub = tlb_evl_fd_add(
       loop, pipe.fd_read, TLB_EV_READ,
       +[](tlb_handle handle, int events, void *userdata) {
-        EventLoopTest *t = static_cast<EventLoopTest *>(userdata);
+        TestState *state = static_cast<TestState *>(userdata);
         uint64_t value = 0;
-        read(t->pipe.fd_read, &value, sizeof(value));
+        read(state->test->pipe.fd_read, &value, sizeof(value));
         EXPECT_EQ(s_test_value, value);
-        t->completed = true;
+        state->read = true;
       },
-      this);
+      &state);
+  ASSERT_NE(nullptr, read_sub);
 
   tlb_handle write_sub = tlb_evl_fd_add(
       loop, pipe.fd_write, TLB_EV_WRITE,
       +[](tlb_handle handle, int events, void *userdata) {
-        EventLoopTest *t = static_cast<EventLoopTest *>(userdata);
-        write(t->pipe.fd_write, &s_test_value, sizeof(s_test_value));
+        TestState *state = static_cast<TestState *>(userdata);
+        if (!state->wrote) {
+          write(state->test->pipe.fd_write, &s_test_value, sizeof(s_test_value));
+          state->wrote = true;
+        }
       },
-      this);
+      &state);
+  ASSERT_NE(nullptr, write_sub);
 
   // Run the write event
-  tlb_evl_handle_events(loop, 1);
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_TRUE(state.wrote);
+  EXPECT_FALSE(state.read);
   // Run the read event (and re-writable event)
-  tlb_evl_handle_events(loop, 2);
-
-  EXPECT_TRUE(completed);
-
-  tlb_evl_fd_remove(loop, read_sub);
-  tlb_evl_fd_remove(loop, write_sub);
+  EXPECT_EQ(2, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_TRUE(state.wrote);
+  EXPECT_TRUE(state.read);
 }
 
 TEST_F(EventLoopTest, Trigger) {
   static const uint64_t s_test_value = 0x0BADFACE;
 
+  struct TestState {
+    EventLoopTest *test = nullptr;
+    bool triggered = false;
+  } state;
+  state.test = this;
+
   tlb_handle trigger = tlb_evl_trigger_add(
       loop,
       +[](tlb_handle handle, int events, void *userdata) {
-        EventLoopTest *t = static_cast<EventLoopTest *>(userdata);
-        t->completed = true;
+        TestState *state = static_cast<TestState *>(userdata);
+        state->triggered = true;
       },
-      this);
+      &state);
+  ASSERT_NE(nullptr, trigger);
 
-  tlb_evl_handle_events(loop, 1);
+  EXPECT_EQ(0, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_FALSE(state.triggered);
 
-  EXPECT_FALSE(completed);
-
-  tlb_evl_trigger_fire(loop, trigger);
-  tlb_evl_handle_events(loop, 1);
-
-  EXPECT_TRUE(completed);
-
-  tlb_evl_trigger_remove(loop, trigger);
+  ASSERT_EQ(0, tlb_evl_trigger_fire(loop, trigger));
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget));
+  EXPECT_TRUE(state.triggered);
 }
 
+}  // namespace
 }  // namespace tlb
