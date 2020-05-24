@@ -87,7 +87,7 @@ void tlb_evl_cleanup(struct tlb_event_loop *loop) {
  * FDs                                                                                                                *
  **********************************************************************************************************************/
 
-int tlb_fd_add(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
+int tlb_evl_impl_fd_add(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
   size_t num_filters = 0;
   if (sub->events & TLB_EV_READ) {
     sub->platform.kqueue.filters[num_filters++] = EVFILT_READ;
@@ -103,7 +103,7 @@ int tlb_fd_add(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
  * Triggers                                                                                                           *
  **********************************************************************************************************************/
 
-int tlb_trigger_add(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
+int tlb_evl_impl_trigger_add(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
   sub->ident.ident = (uintptr_t)sub;
   sub->flags = TLB_SUB_EDGE;
   sub->platform.kqueue.filters[0] = EVFILT_USER;
@@ -129,7 +129,7 @@ int tlb_evl_trigger_fire(struct tlb_event_loop *loop, tlb_handle trigger) {
  * Unsubscribe                                                                                                        *
  **********************************************************************************************************************/
 
-int tlb_unsubscribe(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
+int tlb_evl_impl_unsubscribe(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
   return s_kqueue_change(loop, sub, EV_DELETE);
 }
 

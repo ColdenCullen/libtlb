@@ -40,7 +40,7 @@ tlb_handle tlb_evl_add_fd(struct tlb_event_loop *loop, int fd, int events, tlb_o
   sub->events = events;
   sub->flags = TLB_SUB_EDGE;
 
-  TLB_CHECK_GOTO(0 ==, tlb_fd_add(loop, sub), sub_failed);
+  TLB_CHECK_GOTO(0 ==, tlb_evl_impl_fd_add(loop, sub), sub_failed);
 
   return sub;
 
@@ -55,7 +55,7 @@ sub_failed:
 
 tlb_handle tlb_evl_add_trigger(struct tlb_event_loop *loop, tlb_on_event *trigger, void *userdata) {
   struct tlb_subscription *sub = TLB_CHECK(NULL !=, s_sub_new(loop, trigger, userdata));
-  TLB_CHECK_GOTO(0 ==, tlb_trigger_add(loop, sub), sub_failed);
+  TLB_CHECK_GOTO(0 ==, tlb_evl_impl_trigger_add(loop, sub), sub_failed);
   return sub;
 
 sub_failed:
@@ -75,7 +75,7 @@ tlb_handle tlb_evl_add_evl(struct tlb_event_loop *loop, struct tlb_event_loop *s
   sub->events = TLB_EV_READ;
   sub->flags = TLB_SUB_ONESHOT;
 
-  TLB_CHECK_GOTO(0 ==, tlb_fd_add(loop, sub), sub_failed);
+  TLB_CHECK_GOTO(0 ==, tlb_evl_impl_fd_add(loop, sub), sub_failed);
   return sub;
 
 sub_failed:
@@ -98,7 +98,7 @@ static void s_sub_loop_on_event(tlb_handle subscription, int events, void *userd
 int tlb_evl_remove(struct tlb_event_loop *loop, tlb_handle subscription) {
   struct tlb_subscription *sub = subscription;
 
-  int result = tlb_unsubscribe(loop, sub);
+  int result = tlb_evl_impl_unsubscribe(loop, sub);
   tlb_free(loop->alloc, sub);
 
   return result;
