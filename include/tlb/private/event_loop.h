@@ -27,6 +27,15 @@ struct tlb_subscription {
 
   tlb_on_event *on_event;
   void *userdata;
+
+  /* Reserved for each platform to use */
+  union {
+    struct {
+    } epoll;
+    struct {
+      int16_t filters[2];
+    } kqueue;
+  } platform;
 };
 
 enum {
@@ -36,14 +45,16 @@ enum {
 TLB_EXTERN_C_BEGIN
 
 /* Implemented per platform */
-int tlb_ev_init(struct tlb_event_loop *loop);
-void tlb_ev_cleanup(struct tlb_event_loop *loop);
 
-int tlb_fd_subscribe(struct tlb_event_loop *loop, struct tlb_subscription *sub);
-int tlb_fd_unsubscribe(struct tlb_event_loop *loop, struct tlb_subscription *sub);
+int tlb_evl_init(struct tlb_event_loop *loop);
+void tlb_evl_cleanup(struct tlb_event_loop *loop);
 
+/* Subscribes specific types to the loop */
+int tlb_fd_add(struct tlb_event_loop *loop, struct tlb_subscription *sub);
 int tlb_trigger_add(struct tlb_event_loop *loop, struct tlb_subscription *sub);
-int tlb_trigger_remove(struct tlb_event_loop *loop, struct tlb_subscription *sub);
+
+/* All unsubscribe implementations are the same */
+int tlb_unsubscribe(struct tlb_event_loop *loop, struct tlb_subscription *sub);
 
 TLB_EXTERN_C_END
 

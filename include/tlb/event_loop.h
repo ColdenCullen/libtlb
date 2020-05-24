@@ -23,17 +23,17 @@ struct tlb_event_loop *tlb_evl_new(struct tlb_allocator *alloc);
 void tlb_evl_destroy(struct tlb_event_loop *loop);
 
 /** Subscribe a file descriptor to the event loop. */
-tlb_handle tlb_evl_fd_add(struct tlb_event_loop *loop, int fd, int events, tlb_on_event *on_event, void *userdata);
-int tlb_evl_fd_remove(struct tlb_event_loop *loop, tlb_handle subscription);
+tlb_handle tlb_evl_add_fd(struct tlb_event_loop *loop, int fd, int events, tlb_on_event *on_event, void *userdata);
 
 /** Add a user trigger to the event loop */
-tlb_handle tlb_evl_trigger_add(struct tlb_event_loop *loop, tlb_on_event *trigger, void *userdata);
-int tlb_evl_trigger_remove(struct tlb_event_loop *loop, tlb_handle trigger);
+tlb_handle tlb_evl_add_trigger(struct tlb_event_loop *loop, tlb_on_event *trigger, void *userdata);
 int tlb_evl_trigger_fire(struct tlb_event_loop *loop, tlb_handle trigger);
 
 /** Add a sub-loop */
-tlb_handle tlb_evl_evl_add(struct tlb_event_loop *loop, struct tlb_event_loop *sub_loop);
-int tlb_evl_evl_remove(struct tlb_event_loop *loop, tlb_handle subscription);
+tlb_handle tlb_evl_add_evl(struct tlb_event_loop *loop, struct tlb_event_loop *sub_loop);
+
+/* All unsubscribe implementations are the same */
+int tlb_evl_remove(struct tlb_event_loop *loop, tlb_handle subscription);
 
 /** Handles up to budget pending events without waiting. */
 int tlb_evl_handle_events(struct tlb_event_loop *loop, size_t budget);

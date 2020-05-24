@@ -35,17 +35,48 @@ static int s_events_from_kevent(const struct kevent *kevent) {
   return ev;
 }
 
+int s_kqueue_change(struct tlb_event_loop *loop, struct tlb_subscription *sub, uint16_t flags) {
+  struct kevent cl[2];
+  int num_changes = 0;
+
+  /* Calculate flags */
+  if (sub->flags & TLB_SUB_ONESHOT) {
+    flags |= EV_ONESHOT;
+  }
+  if (sub->flags & TLB_SUB_EDGE) {
+    flags |= EV_CLEAR;
+  }
+
+  for (size_t ii = 0; ii < TLB_ARRAY_LENGTH(sub->platform.kqueue.filters); ++ii) {
+    const int16_t filter = sub->platform.kqueue.filters[ii];
+    if (filter) {
+      EV_SET(&cl[num_changes++], /* kev */
+             sub->ident.ident,   /* ident */
+             filter,             /* filter */
+             flags,              /* flags */
+             0,                  /* fflags */
+             0,                  /* data */
+             sub                 /* udata */
+      );
+    }
+  }
+
+  TLB_CHECK(-1 !=, kevent(loop->fd, cl, num_changes, NULL, 0, 0));
+
+  return 0;
+}
+
 /**********************************************************************************************************************
  * Event Loop                                                                                                         *
  **********************************************************************************************************************/
 
-int tlb_ev_init(struct tlb_event_loop *loop) {
+int tlb_evl_init(struct tlb_event_loop *loop) {
   loop->fd = TLB_CHECK(-1 !=, kqueue());
 
   return 0;
 }
 
-void tlb_ev_cleanup(struct tlb_event_loop *loop) {
+void tlb_evl_cleanup(struct tlb_event_loop *loop) {
   if (loop->fd) {
     close(loop->fd);
     loop->fd = 0;
@@ -56,71 +87,16 @@ void tlb_ev_cleanup(struct tlb_event_loop *loop) {
  * FDs                                                                                                                *
  **********************************************************************************************************************/
 
-int tlb_fd_subscribe(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
-  struct kevent cl[2];
-  int num_changes = 0;
-
-  int flags = EV_ADD;
-  if (sub->flags & TLB_SUB_ONESHOT) {
-    flags |= EV_ONESHOT;
-  }
-  if (sub->flags & TLB_SUB_EDGE) {
-    flags |= EV_CLEAR;
-  }
-
+int tlb_fd_add(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
+  size_t num_filters = 0;
   if (sub->events & TLB_EV_READ) {
-    EV_SET(&cl[num_changes++], /* kev */
-           sub->ident.ident,   /* ident */
-           EVFILT_READ,        /* filter */
-           flags,              /* flags */
-           0,                  /* fflags */
-           0,                  /* data */
-           sub                 /* udata */
-    );
+    sub->platform.kqueue.filters[num_filters++] = EVFILT_READ;
   }
   if (sub->events & TLB_EV_WRITE) {
-    EV_SET(&cl[num_changes++], /* kev */
-           sub->ident.ident,   /* ident */
-           EVFILT_WRITE,       /* filter */
-           flags,              /* flags */
-           0,                  /* fflags */
-           0,                  /* data */
-           sub                 /* udata */
-    );
+    sub->platform.kqueue.filters[num_filters++] = EVFILT_WRITE;
   }
 
-  TLB_CHECK(-1 !=, kevent(loop->fd, cl, num_changes, NULL, 0, 0));
-
-  return 0;
-}
-int tlb_fd_unsubscribe(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
-  struct kevent cl[2];
-  int num_changes = 0;
-
-  if (sub->events & TLB_EV_READ) {
-    EV_SET(&cl[num_changes++], /* kev */
-           sub->ident.ident,   /* ident */
-           EVFILT_READ,        /* filter */
-           EV_DELETE,          /* flags */
-           0,                  /* fflags */
-           0,                  /* data */
-           sub                 /* udata */
-    );
-  }
-  if (sub->events & TLB_EV_WRITE) {
-    EV_SET(&cl[num_changes++], /* kev */
-           sub->ident.ident,   /* ident */
-           EVFILT_WRITE,       /* filter */
-           EV_DELETE,          /* flags */
-           0,                  /* fflags */
-           0,                  /* data */
-           sub                 /* udata */
-    );
-  }
-
-  TLB_CHECK(-1 !=, kevent(loop->fd, cl, num_changes, NULL, 0, NULL));
-
-  return 0;
+  return s_kqueue_change(loop, sub, EV_ADD);
 }
 
 /**********************************************************************************************************************
@@ -129,30 +105,12 @@ int tlb_fd_unsubscribe(struct tlb_event_loop *loop, struct tlb_subscription *sub
 
 int tlb_trigger_add(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
   sub->ident.ident = (uintptr_t)sub;
+  sub->flags = TLB_SUB_EDGE;
+  sub->platform.kqueue.filters[0] = EVFILT_USER;
 
-  struct kevent change;
-  EV_SET(&change,           /* kev */
-         sub->ident.ident,  /* ident */
-         EVFILT_USER,       /* filter */
-         EV_ADD | EV_CLEAR, /* flags */
-         0,                 /* fflags */
-         0,                 /* data */
-         sub                /* udata */
-  );
-  return kevent(loop->fd, &change, 1, NULL, 0, NULL);
+  return s_kqueue_change(loop, sub, EV_ADD);
 }
-int tlb_trigger_remove(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
-  struct kevent change;
-  EV_SET(&change,          /* kev */
-         sub->ident.ident, /* ident */
-         EVFILT_USER,      /* filter */
-         EV_DELETE,        /* flags */
-         0,                /* fflags */
-         0,                /* data */
-         sub               /* udata */
-  );
-  return kevent(loop->fd, &change, 1, NULL, 0, NULL);
-}
+
 int tlb_evl_trigger_fire(struct tlb_event_loop *loop, tlb_handle trigger) {
   struct tlb_subscription *sub = trigger;
   struct kevent change;
@@ -165,6 +123,14 @@ int tlb_evl_trigger_fire(struct tlb_event_loop *loop, tlb_handle trigger) {
          sub               /* udata */
   );
   return kevent(loop->fd, &change, 1, NULL, 0, NULL);
+}
+
+/**********************************************************************************************************************
+ * Unsubscribe                                                                                                        *
+ **********************************************************************************************************************/
+
+int tlb_unsubscribe(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
+  return s_kqueue_change(loop, sub, EV_DELETE);
 }
 
 /**********************************************************************************************************************
@@ -190,7 +156,7 @@ int tlb_evl_handle_events(struct tlb_event_loop *loop, const size_t budget) {
 
       /* Resubscribe the event */
       if (sub->flags & TLB_SUB_ONESHOT) {
-        tlb_fd_subscribe(loop, sub);
+        s_kqueue_change(loop, sub, EV_ADD);
       }
     }
     events_handled += num_events;

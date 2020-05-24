@@ -59,7 +59,7 @@ TEST_F(EventLoopPipeTest, PipeReadable) {
   } state;
   state.test = this;
 
-  tlb_handle sub = tlb_evl_fd_add(
+  tlb_handle sub = tlb_evl_add_fd(
       loop, pipe.fd_read, TLB_EV_READ,
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
@@ -84,7 +84,7 @@ TEST_F(EventLoopPipeTest, PipeRereadable) {
   } state;
   state.test = this;
 
-  tlb_handle sub = tlb_evl_fd_add(
+  tlb_handle sub = tlb_evl_add_fd(
       loop, pipe.fd_read, TLB_EV_READ,
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
@@ -114,7 +114,7 @@ TEST_F(EventLoopPipeTest, PipeWritable) {
   } state;
   state.test = this;
 
-  tlb_handle sub = tlb_evl_fd_add(
+  tlb_handle sub = tlb_evl_add_fd(
       loop, pipe.fd_write, TLB_EV_WRITE,
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
@@ -142,7 +142,7 @@ TEST_F(EventLoopPipeTest, PipeReadableWritable) {
   } state;
   state.test = this;
 
-  tlb_handle read_sub = tlb_evl_fd_add(
+  tlb_handle read_sub = tlb_evl_add_fd(
       loop, pipe.fd_read, TLB_EV_READ,
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
@@ -154,7 +154,7 @@ TEST_F(EventLoopPipeTest, PipeReadableWritable) {
       &state);
   ASSERT_NE(nullptr, read_sub);
 
-  tlb_handle write_sub = tlb_evl_fd_add(
+  tlb_handle write_sub = tlb_evl_add_fd(
       loop, pipe.fd_write, TLB_EV_WRITE,
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
@@ -186,7 +186,7 @@ TEST_F(EventLoopPipeTest, Trigger) {
   } state;
   state.test = this;
 
-  tlb_handle trigger = tlb_evl_trigger_add(
+  tlb_handle trigger = tlb_evl_add_trigger(
       loop,
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
@@ -209,14 +209,14 @@ class EventLoopSubLoopTest : public EventLoopPipeTest {
     EventLoopPipeTest::SetUp();
 
     sub_loop = tlb_evl_new(alloc);
-    sub_loop_handle = tlb_evl_evl_add(loop, sub_loop);
+    sub_loop_handle = tlb_evl_add_evl(loop, sub_loop);
   }
 
   void TearDown() override {
     // Ensure there aren't leftover events
     ASSERT_EQ(0, tlb_evl_handle_events(sub_loop, s_event_budget));
 
-    tlb_evl_evl_remove(loop, sub_loop_handle);
+    tlb_evl_remove(loop, sub_loop_handle);
     tlb_evl_destroy(sub_loop);
 
     EventLoopPipeTest::TearDown();
@@ -237,7 +237,7 @@ TEST_F(EventLoopSubLoopTest, PipeReadable) {
   } state;
   state.test = this;
 
-  tlb_handle sub = tlb_evl_fd_add(
+  tlb_handle sub = tlb_evl_add_fd(
       sub_loop, pipe.fd_read, TLB_EV_READ,
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
@@ -263,7 +263,7 @@ TEST_F(EventLoopSubLoopTest, PipeRereadable) {
   } state;
   state.test = this;
 
-  tlb_handle sub = tlb_evl_fd_add(
+  tlb_handle sub = tlb_evl_add_fd(
       sub_loop, pipe.fd_read, TLB_EV_READ,
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
