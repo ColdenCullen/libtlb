@@ -45,7 +45,7 @@ TEST_F(EventLoopTest, PipeReadable) {
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
         uint64_t value = 0;
-        read(state->test->pipe.fd_read, &value, sizeof(value));
+        tlb_pipe_read(&state->test->pipe, &value, sizeof(value));
         EXPECT_EQ(s_test_value, value);
         state->read = true;
       },
@@ -71,7 +71,7 @@ TEST_F(EventLoopTest, PipeWritable) {
       loop, pipe.fd_write, TLB_EV_WRITE,
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
-        write(state->test->pipe.fd_write, &s_test_value, sizeof(s_test_value));
+        tlb_pipe_write(&state->test->pipe, &s_test_value, sizeof(s_test_value));
         state->wrote = true;
       },
       &state);
@@ -101,7 +101,7 @@ TEST_F(EventLoopTest, PipeReadableWritable) {
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
         uint64_t value = 0;
-        read(state->test->pipe.fd_read, &value, sizeof(value));
+        tlb_pipe_read(&state->test->pipe, &value, sizeof(value));
         EXPECT_EQ(s_test_value, value);
         state->read = true;
       },
@@ -113,7 +113,7 @@ TEST_F(EventLoopTest, PipeReadableWritable) {
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
         if (!state->wrote) {
-          write(state->test->pipe.fd_write, &s_test_value, sizeof(s_test_value));
+          tlb_pipe_write(&state->test->pipe, &s_test_value, sizeof(s_test_value));
           state->wrote = true;
         }
       },

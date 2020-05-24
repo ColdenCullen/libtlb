@@ -23,3 +23,11 @@ void tlb_pipe_close(struct tlb_pipe *pipe) {
   close(pipe->fd_read);
   close(pipe->fd_write);
 }
+
+ssize_t tlb_pipe_read(struct tlb_pipe *pipe, void *buf, size_t count) {
+  return read(pipe->fd_read, buf, count);
+}
+
+ssize_t tlb_pipe_write(struct tlb_pipe *pipe, const void *buf, size_t count) {
+  return write(pipe->fd_write, buf, count);
+}
