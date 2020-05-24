@@ -41,7 +41,7 @@ int s_kqueue_change(struct tlb_event_loop *loop, struct tlb_subscription *sub, u
 
   /* Calculate flags */
   if (sub->flags & TLB_SUB_ONESHOT) {
-    flags |= EV_ONESHOT;
+    flags |= EV_DISPATCH;
   }
   if (sub->flags & TLB_SUB_EDGE) {
     flags |= EV_CLEAR;
@@ -156,7 +156,7 @@ int tlb_evl_handle_events(struct tlb_event_loop *loop, const size_t budget) {
 
       /* Resubscribe the event */
       if (sub->flags & TLB_SUB_ONESHOT) {
-        s_kqueue_change(loop, sub, EV_ADD);
+        s_kqueue_change(loop, sub, EV_ENABLE);
       }
     }
     events_handled += num_events;
