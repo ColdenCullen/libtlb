@@ -4,8 +4,8 @@
 #include "tlb/event_loop.h"
 
 enum tlb_sub_flags {
-  TLB_SUB_ONESHOT = TLB_BIT(0),
-  TLB_SUB_EDGE = TLB_BIT(1),
+  TLB_SUB_ONESHOT,
+  TLB_SUB_EDGE,
 };
 
 enum tlb_sub_state {
@@ -24,12 +24,12 @@ struct tlb_subscription {
     int fd;
     uintptr_t ident;
   } ident;
-  int events; /* enum enum tlb_events */
-  int flags;  /* enum tlb_sub_flags */
 
   tlb_on_event *on_event;
   void *userdata;
 
+  uint8_t events;         /* enum enum tlb_events */
+  uint8_t flags;          /* enum tlb_sub_flags */
   volatile uint8_t state; /* enum tlb_sub_state */
 
   /* Reserved for each platform to use */

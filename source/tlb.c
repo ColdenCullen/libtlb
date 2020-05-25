@@ -13,7 +13,7 @@ struct tlb_thread {
   thrd_t id;
   struct tlb *tlb;
   struct tlb_event_loop loop;
-  tlb_handle thread_stop;
+  struct tlb_subscription thread_stop;
   volatile bool should_stop;
 };
 
@@ -83,7 +83,7 @@ int tlb_stop(struct tlb *tlb) {
     /* Fire the trigger, and wait for the event to be handled */
     struct tlb_thread *thread = &tlb->threads[ii];
     thread->should_stop = true;
-    tlb_evl_trigger_fire(&thread->loop, thread->thread_stop);
+    tlb_evl_trigger_fire(&thread->loop, &thread->thread_stop);
   }
 
   for (size_t ii = 0; ii < num_threads; ++ii) {
@@ -104,14 +104,20 @@ static int s_thread_start(void *arg) {
 
   tlb_evl_init(&thread->loop, tlb->alloc);
   tlb_handle super_loop = tlb_evl_add_evl(&thread->loop, &tlb->super_loop);
-  thread->thread_stop = tlb_evl_add_trigger(&thread->loop, s_thread_stop, thread);
+
+  thread->thread_stop = (struct tlb_subscription){
+      .on_event = s_thread_stop,
+      .userdata = thread,
+  };
+  tlb_evl_impl_trigger_init(&thread->thread_stop);
+  tlb_evl_impl_subscribe(&thread->loop, &thread->thread_stop);
 
   /* Wait for events */
   while (!thread->should_stop) {
     tlb_evl_handle_events(&thread->loop, 0, TLB_WAIT_INDEFINITE);
   }
 
-  tlb_evl_remove(&thread->loop, thread->thread_stop);
+  tlb_evl_impl_subscribe(&thread->loop, &thread->thread_stop);
   tlb_evl_remove(&thread->loop, super_loop);
   tlb_evl_cleanup(&thread->loop);
 

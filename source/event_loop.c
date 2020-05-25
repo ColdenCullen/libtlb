@@ -23,9 +23,11 @@ void tlb_evl_destroy(struct tlb_event_loop *loop) {
 }
 
 static struct tlb_subscription *s_sub_new(struct tlb_event_loop *loop, tlb_on_event *on_event, void *userdata) {
-  struct tlb_subscription *sub = TLB_CHECK(NULL !=, tlb_calloc(loop->alloc, 1, sizeof(struct tlb_subscription)));
-  sub->on_event = on_event;
-  sub->userdata = userdata;
+  struct tlb_subscription *sub = TLB_CHECK(NULL !=, tlb_malloc(loop->alloc, sizeof(struct tlb_subscription)));
+  *sub = (struct tlb_subscription){
+      .on_event = on_event,
+      .userdata = userdata,
+  };
   return sub;
 }
 
