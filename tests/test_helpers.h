@@ -3,7 +3,7 @@
 
 #include "tlb/allocator.h"
 
-namespace tlb {
+namespace tlb_test {
 extern tlb_allocator *test_allocator();
 }
 

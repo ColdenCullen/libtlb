@@ -139,10 +139,15 @@ int tlb_evl_impl_unsubscribe(struct tlb_event_loop *loop, struct tlb_subscriptio
  * Handle events                                                                                                      *
  **********************************************************************************************************************/
 
-int tlb_evl_handle_events(struct tlb_event_loop *loop, const size_t budget, int timeout) {
+int tlb_evl_handle_events(struct tlb_event_loop *loop, size_t budget, int timeout) {
   struct kevent eventlist[TLB_EV_EVENT_BATCH];
   int events_handled = 0;
   int num_events;
+
+  /* Zero budget means just keep truckin */
+  if (budget == 0) {
+    budget = SIZE_MAX;
+  }
 
   do {
     /* Calculate the maximum number of events to run */

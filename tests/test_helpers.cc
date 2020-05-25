@@ -2,7 +2,7 @@
 
 #include "tlb/allocator.h"
 
-namespace tlb {
+namespace tlb_test {
 
 static void *s_malloc(void *userdata, size_t size) {
   return malloc(size);
@@ -29,4 +29,4 @@ extern tlb_allocator *test_allocator() {
 
   return &alloc;
 }
-}  // namespace tlb
+}  // namespace tlb_test

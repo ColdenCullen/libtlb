@@ -8,7 +8,7 @@
 #include <array>
 #include <thread>
 
-namespace tlb {
+namespace tlb_test {
 namespace {
 
 constexpr size_t s_event_budget = 100;
@@ -18,7 +18,7 @@ constexpr size_t s_thread_count = 2;
 class EventLoopTest : public ::testing::Test {
  public:
   void SetUp() override {
-    alloc = tlb::test_allocator();
+    alloc = tlb_test::test_allocator();
     ASSERT_NE(nullptr, alloc);
     loop = tlb_evl_new(alloc);
     ASSERT_NE(nullptr, loop);
@@ -547,4 +547,4 @@ TEST_F(EventLoopSubLoopTest, MultithreadedTrigger) {
 }
 
 }  // namespace
-}  // namespace tlb
+}  // namespace tlb_test
