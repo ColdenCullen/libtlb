@@ -18,6 +18,9 @@ void tlb_destroy(struct tlb *tlb);
 int tlb_start(struct tlb *tlb);
 int tlb_stop(struct tlb *tlb);
 
+/** Gets the event loop that things may be subscribed to */
+struct tlb_event_loop *tlb_get_evl(struct tlb *tlb);
+
 TLB_EXTERN_C_END
 
 #endif /* TLB_TLB_H */

@@ -131,3 +131,7 @@ static void s_thread_stop(tlb_handle subscription, int events, void *userdata) {
 
   /* no-op */
 }
+
+struct tlb_event_loop *tlb_get_evl(struct tlb *tlb) {
+  return &tlb->super_loop;
+}

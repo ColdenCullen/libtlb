@@ -41,9 +41,9 @@ TEST_F(EventLoopTest, CreateDestroy) {
 class EventLoopPipeTest : public EventLoopTest {
  public:
   void SetUp() override {
-    tlb_pipe_open(&pipe);
-
     EventLoopTest::SetUp();
+
+    tlb_pipe_open(&pipe);
   }
 
   void TearDown() override {
