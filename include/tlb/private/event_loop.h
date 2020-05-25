@@ -55,11 +55,12 @@ TLB_EXTERN_C_BEGIN
 int tlb_evl_init(struct tlb_event_loop *loop);
 void tlb_evl_cleanup(struct tlb_event_loop *loop);
 
-/* Subscribes specific types to the loop */
-int tlb_evl_impl_fd_add(struct tlb_event_loop *loop, struct tlb_subscription *sub);
-int tlb_evl_impl_trigger_add(struct tlb_event_loop *loop, struct tlb_subscription *sub);
+/* Initializes specific types to the loop */
+void tlb_evl_impl_fd_init(struct tlb_subscription *sub);
+void tlb_evl_impl_trigger_init(struct tlb_subscription *sub);
 
-/* All unsubscribe implementations are the same */
+/* All subscribe/unsubscribe implementations are the same */
+int tlb_evl_impl_subscribe(struct tlb_event_loop *loop, struct tlb_subscription *sub);
 int tlb_evl_impl_unsubscribe(struct tlb_event_loop *loop, struct tlb_subscription *sub);
 
 TLB_EXTERN_C_END

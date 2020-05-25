@@ -86,10 +86,10 @@ void tlb_evl_cleanup(struct tlb_event_loop *loop) {
 }
 
 /**********************************************************************************************************************
- * FDs                                                                                                                *
+ * File Descriptors                                                                                                   *
  **********************************************************************************************************************/
 
-int tlb_evl_impl_fd_add(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
+void tlb_evl_impl_fd_init(struct tlb_subscription *sub) {
   size_t num_filters = 0;
   if (sub->events & TLB_EV_READ) {
     sub->platform.kqueue[num_filters++] = EVFILT_READ;
@@ -97,20 +97,16 @@ int tlb_evl_impl_fd_add(struct tlb_event_loop *loop, struct tlb_subscription *su
   if (sub->events & TLB_EV_WRITE) {
     sub->platform.kqueue[num_filters++] = EVFILT_WRITE;
   }
-
-  return s_kqueue_change(loop, sub, EV_ADD);
 }
 
 /**********************************************************************************************************************
  * Triggers                                                                                                           *
  **********************************************************************************************************************/
 
-int tlb_evl_impl_trigger_add(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
+void tlb_evl_impl_trigger_init(struct tlb_subscription *sub) {
   sub->ident.ident = (uintptr_t)sub;
   sub->flags = TLB_SUB_EDGE;
   sub->platform.kqueue[0] = EVFILT_USER;
-
-  return s_kqueue_change(loop, sub, EV_ADD);
 }
 
 int tlb_evl_trigger_fire(struct tlb_event_loop *loop, tlb_handle trigger) {
@@ -128,8 +124,12 @@ int tlb_evl_trigger_fire(struct tlb_event_loop *loop, tlb_handle trigger) {
 }
 
 /**********************************************************************************************************************
- * Unsubscribe                                                                                                        *
+ * Subscribe/Unsubscribe                                                                                              *
  **********************************************************************************************************************/
+
+int tlb_evl_impl_subscribe(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
+  return s_kqueue_change(loop, sub, EV_ADD);
+}
 
 int tlb_evl_impl_unsubscribe(struct tlb_event_loop *loop, struct tlb_subscription *sub) {
   return s_kqueue_change(loop, sub, EV_DELETE);
