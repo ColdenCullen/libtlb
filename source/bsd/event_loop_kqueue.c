@@ -72,7 +72,8 @@ int s_kqueue_change(struct tlb_event_loop *loop, struct tlb_subscription *sub, u
  * Event Loop                                                                                                         *
  **********************************************************************************************************************/
 
-int tlb_evl_init(struct tlb_event_loop *loop) {
+int tlb_evl_init(struct tlb_event_loop *loop, struct tlb_allocator *alloc) {
+  loop->alloc = alloc;
   loop->fd = TLB_CHECK(-1 !=, kqueue());
 
   return 0;

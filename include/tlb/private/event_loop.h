@@ -3,8 +3,6 @@
 
 #include "tlb/event_loop.h"
 
-#include "tlb/core.h"
-
 enum tlb_sub_flags {
   TLB_SUB_ONESHOT = TLB_BIT(0),
   TLB_SUB_EDGE = TLB_BIT(1),
@@ -52,7 +50,7 @@ TLB_EXTERN_C_BEGIN
 
 /* Implemented per platform */
 
-int tlb_evl_init(struct tlb_event_loop *loop);
+int tlb_evl_init(struct tlb_event_loop *loop, struct tlb_allocator *alloc);
 void tlb_evl_cleanup(struct tlb_event_loop *loop);
 
 /* Initializes specific types to the loop */

@@ -6,9 +6,8 @@
 
 struct tlb_event_loop *tlb_evl_new(struct tlb_allocator *alloc) {
   struct tlb_event_loop *loop = TLB_CHECK(NULL !=, tlb_calloc(alloc, 1, sizeof(struct tlb_event_loop)));
-  loop->alloc = alloc;
 
-  TLB_CHECK_GOTO(0 ==, tlb_evl_init(loop), cleanup);
+  TLB_CHECK_GOTO(0 ==, tlb_evl_init(loop, alloc), cleanup);
 
   return loop;
 
