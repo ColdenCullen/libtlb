@@ -14,6 +14,12 @@
 #else /* C */
 #  define TLB_EXTERN_C_BEGIN
 #  define TLB_EXTERN_C_END
+
+#  if __STDC_VERSION__ < 201112L || (defined(__STDC_NO_THREADS__) && __STDC_NO_THREADS__ == 1)
+#    include <tinycthread.h>
+#  else
+#    include <threads.h>
+#  endif
 #endif /* C/C++ */
 
 enum {
