@@ -35,7 +35,9 @@ int tlb_evl_trigger_fire(struct tlb_event_loop *loop, tlb_handle trigger);
 /** Add a sub-loop */
 tlb_handle tlb_evl_add_evl(struct tlb_event_loop *loop, struct tlb_event_loop *sub_loop);
 
-/* All unsubscribe implementations are the same */
+/** Moves a subscription form one loop to another */
+int tlb_evl_move(struct tlb_event_loop *loop_from, tlb_handle subscription, struct tlb_event_loop *loop_to);
+/** Remove a subscription from the loop */
 int tlb_evl_remove(struct tlb_event_loop *loop, tlb_handle subscription);
 
 /** Handles up to budget events, waiting for up to timeout milliseconds (or 0 to not wait, or -1 to wait forever) */
