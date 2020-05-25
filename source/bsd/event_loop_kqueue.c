@@ -98,6 +98,8 @@ void tlb_evl_cleanup(struct tlb_event_loop *loop) {
  **********************************************************************************************************************/
 
 void tlb_evl_impl_fd_init(struct tlb_subscription *sub) {
+  TLB_ASSERT(sub->sub_mode);
+
   size_t num_filters = 0;
   if (sub->events & TLB_EV_READ) {
     sub->platform.kqueue.filters[num_filters++] = EVFILT_READ;
