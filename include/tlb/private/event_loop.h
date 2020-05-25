@@ -14,20 +14,18 @@ enum tlb_sub_state {
   TLB_STATE_UNSUBBED,
 };
 
-union tlb_ident {
-  int fd;
-  uintptr_t ident;
-};
-
 struct tlb_event_loop {
   struct tlb_allocator *alloc;
   int fd;
 };
 
 struct tlb_subscription {
-  union tlb_ident ident;
-  int events;
-  int flags; /* enum tlb_sub_flags */
+  union {
+    int fd;
+    uintptr_t ident;
+  } ident;
+  int events; /* enum enum tlb_events */
+  int flags;  /* enum tlb_sub_flags */
 
   tlb_on_event *on_event;
   void *userdata;
@@ -36,8 +34,7 @@ struct tlb_subscription {
 
   /* Reserved for each platform to use */
   union {
-    struct {
-    } epoll;
+    uint32_t epoll; /* TBD */
     int16_t kqueue[2];
   } platform;
 };
