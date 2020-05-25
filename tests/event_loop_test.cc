@@ -3,9 +3,11 @@
 #include "tlb/pipe.h"
 
 #include <gtest/gtest.h>
+#include <string.h>
 
 #include "test_helpers.h"
 #include <array>
+#include <chrono>
 #include <thread>
 
 namespace tlb_test {
@@ -13,7 +15,8 @@ namespace {
 
 constexpr size_t s_event_budget = 100;
 constexpr uint64_t s_test_value = 0x0BADFACE;
-constexpr size_t s_thread_count = 2;
+constexpr size_t s_thread_count = 5;
+constexpr auto s_timer_epsilon = std::chrono::milliseconds(50);
 
 class EventLoopTest : public ::testing::Test {
  public:
@@ -362,6 +365,35 @@ TEST_F(EventLoopTest, RecursiveTrigger) {
   EXPECT_TRUE(state.triggered);
 }
 
+TEST_F(EventLoopTest, RecursiveTriggerRemove) {
+  struct TestState {
+    EventLoopTest *test = nullptr;
+    bool triggered = false;
+  } state;
+  state.test = this;
+
+  tlb_handle trigger = tlb_evl_add_trigger(
+      loop,
+      +[](tlb_handle handle, int events, void *userdata) {
+        TestState *state = static_cast<TestState *>(userdata);
+        state->triggered = true;
+        // Remove the trigger
+        ASSERT_EQ(0, tlb_evl_remove(state->test->loop, handle));
+      },
+      &state);
+  ASSERT_NE(nullptr, trigger);
+
+  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
+  EXPECT_FALSE(state.triggered);
+
+  // Fire the trigger
+  ASSERT_EQ(0, tlb_evl_trigger_fire(loop, trigger));
+
+  // Make sure only one event goes
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
+  EXPECT_TRUE(state.triggered);
+}
+
 TEST_F(EventLoopTest, MultithreadedTrigger) {
   struct TestState {
     EventLoopTest *test = nullptr;
@@ -373,7 +405,7 @@ TEST_F(EventLoopTest, MultithreadedTrigger) {
       loop,
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
-        state->trigger_count.fetch_add(1);
+        state->trigger_count++;
       },
       &state);
   ASSERT_NE(nullptr, trigger);
@@ -401,6 +433,48 @@ TEST_F(EventLoopTest, MultithreadedTrigger) {
   for (auto &thread : threads) {
     thread.join();
   }
+}
+
+TEST_F(EventLoopTest, MultithreadedRecursiveTrigger) {
+  struct TestState {
+    EventLoopTest *test = nullptr;
+    std::atomic<size_t> trigger_count = {0};
+  } state;
+  state.test = this;
+
+  tlb_handle trigger = tlb_evl_add_trigger(
+      loop,
+      +[](tlb_handle handle, int events, void *userdata) {
+        TestState *state = static_cast<TestState *>(userdata);
+        // Refire trigger for the next thread
+        state->trigger_count++;
+        if (state->trigger_count < s_thread_count) {
+          ASSERT_EQ(0, tlb_evl_trigger_fire(state->test->loop, handle));
+        }
+      },
+      &state);
+  ASSERT_NE(nullptr, trigger);
+
+  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
+  EXPECT_EQ(0, state.trigger_count);
+
+  // Spawn all the threads to watch the trigger
+  std::array<std::thread, s_thread_count> threads;
+  for (auto &thread : threads) {
+    thread = std::thread([&]() {
+      // Run the thread until we receive an event
+      ASSERT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_INDEFINITE));
+    });
+  }
+
+  // Fire the trigger for the first thread
+  ASSERT_EQ(0, tlb_evl_trigger_fire(loop, trigger));
+
+  for (auto &thread : threads) {
+    thread.join();
+  }
+
+  EXPECT_EQ(threads.size(), state.trigger_count);
 }
 
 TEST_F(EventLoopTest, TriggerUnsubscribe) {
@@ -432,6 +506,34 @@ TEST_F(EventLoopTest, TriggerUnsubscribe) {
 
   EXPECT_EQ(0, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
   EXPECT_FALSE(state.triggered);
+}
+
+TEST_F(EventLoopTest, Timer) {
+  struct TestState {
+    EventLoopTest *test = nullptr;
+    bool triggered = false;
+  } state;
+  state.test = this;
+
+  static constexpr auto duration = std::chrono::seconds(1);
+
+  tlb_handle timer = tlb_evl_add_timer(
+      loop, std::chrono::duration_cast<std::chrono::milliseconds>(duration).count(),
+      +[](tlb_handle handle, int events, void *userdata) {
+        TestState *state = static_cast<TestState *>(userdata);
+        state->triggered = true;
+      },
+      &state);
+  ASSERT_NE(nullptr, timer);
+
+  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
+  EXPECT_FALSE(state.triggered);
+
+  // Sleep, and include a bit of extra time for safety
+  std::this_thread::sleep_for(duration + s_timer_epsilon);
+
+  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
+  EXPECT_TRUE(state.triggered);
 }
 
 class EventLoopSubLoopTest : public EventLoopPipeTest {
@@ -487,36 +589,6 @@ TEST_F(EventLoopSubLoopTest, PipeReadable) {
   EXPECT_EQ(1, state.read_count);
 }
 
-TEST_F(EventLoopSubLoopTest, PipeRereadable) {
-  struct TestState {
-    EventLoopSubLoopTest *test = nullptr;
-    int read_count = 0;
-  } state;
-  state.test = this;
-
-  tlb_handle sub = tlb_evl_add_fd(
-      sub_loop, pipe.fd_read, TLB_EV_READ,
-      +[](tlb_handle handle, int events, void *userdata) {
-        TestState *state = static_cast<TestState *>(userdata);
-        uint64_t value = 0;
-        tlb_pipe_read(&state->test->pipe, &value, sizeof(value));
-        EXPECT_EQ(s_test_value, value);
-        state->read_count++;
-      },
-      &state);
-  ASSERT_NE(nullptr, sub);
-
-  tlb_pipe_write(&pipe, &s_test_value, sizeof(s_test_value));
-  tlb_pipe_write(&pipe, &s_test_value, sizeof(s_test_value));
-
-  // Handle read
-  ASSERT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
-  EXPECT_EQ(1, state.read_count);
-  // Handle reread
-  ASSERT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
-  EXPECT_EQ(2, state.read_count);
-}
-
 TEST_F(EventLoopSubLoopTest, PipeUnsubscribe) {
   struct TestState {
     EventLoopSubLoopTest *test = nullptr;
@@ -548,8 +620,9 @@ TEST_F(EventLoopSubLoopTest, MultithreadedTrigger) {
   tlb_handle trigger = tlb_evl_add_trigger(
       sub_loop,
       +[](tlb_handle handle, int events, void *userdata) {
+        std::cout << "Triggered" << std::endl << std::flush;
         TestState *state = static_cast<TestState *>(userdata);
-        state->trigger_count.fetch_add(1);
+        state->trigger_count++;
       },
       &state);
   ASSERT_NE(nullptr, trigger);
@@ -577,6 +650,48 @@ TEST_F(EventLoopSubLoopTest, MultithreadedTrigger) {
   for (auto &thread : threads) {
     thread.join();
   }
+}
+
+TEST_F(EventLoopSubLoopTest, MultithreadedRecursiveTrigger) {
+  struct TestState {
+    EventLoopSubLoopTest *test = nullptr;
+    std::atomic<size_t> trigger_count = {0};
+  } state;
+  state.test = this;
+
+  tlb_handle trigger = tlb_evl_add_trigger(
+      sub_loop,
+      +[](tlb_handle handle, int events, void *userdata) {
+        TestState *state = static_cast<TestState *>(userdata);
+        // Refire trigger for the next thread
+        state->trigger_count++;
+        if (state->trigger_count < s_thread_count) {
+          ASSERT_EQ(0, tlb_evl_trigger_fire(state->test->sub_loop, handle));
+        }
+      },
+      &state);
+  ASSERT_NE(nullptr, trigger);
+
+  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
+  EXPECT_EQ(0, state.trigger_count);
+
+  // Spawn all the threads to watch the trigger
+  std::array<std::thread, s_thread_count> threads;
+  for (auto &thread : threads) {
+    thread = std::thread([&]() {
+      // Run the thread until we receive an event
+      ASSERT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_INDEFINITE));
+    });
+  }
+
+  // Fire the trigger for the first thread
+  ASSERT_EQ(0, tlb_evl_trigger_fire(sub_loop, trigger));
+
+  for (auto &thread : threads) {
+    thread.join();
+  }
+
+  EXPECT_EQ(threads.size(), state.trigger_count);
 }
 
 }  // namespace

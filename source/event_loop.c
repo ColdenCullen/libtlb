@@ -39,7 +39,7 @@ tlb_handle tlb_evl_add_fd(struct tlb_event_loop *loop, int fd, int events, tlb_o
   struct tlb_subscription *sub = TLB_CHECK(NULL !=, s_sub_new(loop, on_event, userdata));
   sub->ident.fd = fd;
   sub->events = events;
-  sub->flags = TLB_SUB_EDGE;
+  sub->sub_mode = TLB_SUB_EDGE;
 
   tlb_evl_impl_fd_init(sub);
   TLB_CHECK_GOTO(0 ==, tlb_evl_impl_subscribe(loop, sub), sub_failed);
@@ -67,6 +67,21 @@ sub_failed:
 }
 
 /**********************************************************************************************************************
+ * Timer                                                                                                              *
+ **********************************************************************************************************************/
+
+tlb_handle tlb_evl_add_timer(struct tlb_event_loop *loop, int timeout, tlb_on_event *trigger, void *userdata) {
+  struct tlb_subscription *sub = TLB_CHECK(NULL !=, s_sub_new(loop, trigger, userdata));
+  tlb_evl_impl_timer_init(sub, timeout);
+  TLB_CHECK_GOTO(0 ==, tlb_evl_impl_subscribe(loop, sub), sub_failed);
+  return sub;
+
+sub_failed:
+  tlb_free(loop->alloc, sub);
+  return NULL;
+}
+
+/**********************************************************************************************************************
  * Sub-loop                                                                                                           *
  **********************************************************************************************************************/
 
@@ -76,7 +91,7 @@ tlb_handle tlb_evl_add_evl(struct tlb_event_loop *loop, struct tlb_event_loop *s
   struct tlb_subscription *sub = TLB_CHECK(NULL !=, s_sub_new(loop, s_sub_loop_on_event, sub_loop));
   sub->ident.fd = sub_loop->fd;
   sub->events = TLB_EV_READ;
-  sub->flags = TLB_SUB_ONESHOT;
+  sub->sub_mode = TLB_SUB_ONESHOT;
 
   tlb_evl_impl_fd_init(sub);
   TLB_CHECK_GOTO(0 ==, tlb_evl_impl_subscribe(loop, sub), sub_failed);

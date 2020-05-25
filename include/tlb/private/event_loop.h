@@ -3,9 +3,9 @@
 
 #include "tlb/event_loop.h"
 
-enum tlb_sub_flags {
-  TLB_SUB_ONESHOT,
-  TLB_SUB_EDGE,
+enum tlb_sub_mode {
+  TLB_SUB_ONESHOT = TLB_BIT(1),
+  TLB_SUB_EDGE = TLB_BIT(2),
 };
 
 enum tlb_sub_state {
@@ -29,13 +29,16 @@ struct tlb_subscription {
   void *userdata;
 
   uint8_t events;         /* enum enum tlb_events */
-  uint8_t flags;          /* enum tlb_sub_flags */
+  uint8_t sub_mode;       /* enum tlb_sub_flags */
   volatile uint8_t state; /* enum tlb_sub_state */
 
   /* Reserved for each platform to use */
   union {
     uint32_t epoll; /* TBD */
-    int16_t kqueue[2];
+    struct tlb_evl_kqueue {
+      int16_t filters[2];
+      uintptr_t data;
+    } kqueue;
   } platform;
 };
 
@@ -53,6 +56,7 @@ void tlb_evl_cleanup(struct tlb_event_loop *loop);
 /* Initializes specific types to the loop */
 void tlb_evl_impl_fd_init(struct tlb_subscription *sub);
 void tlb_evl_impl_trigger_init(struct tlb_subscription *sub);
+void tlb_evl_impl_timer_init(struct tlb_subscription *sub, int timeout);
 
 /* All subscribe/unsubscribe implementations are the same */
 int tlb_evl_impl_subscribe(struct tlb_event_loop *loop, struct tlb_subscription *sub);

@@ -32,6 +32,9 @@ tlb_handle tlb_evl_add_fd(struct tlb_event_loop *loop, int fd, int events, tlb_o
 tlb_handle tlb_evl_add_trigger(struct tlb_event_loop *loop, tlb_on_event *trigger, void *userdata);
 int tlb_evl_trigger_fire(struct tlb_event_loop *loop, tlb_handle trigger);
 
+/** Add a timer to fire in timeout milliseconds */
+tlb_handle tlb_evl_add_timer(struct tlb_event_loop *loop, int timeout, tlb_on_event *trigger, void *userdata);
+
 /** Add a sub-loop */
 tlb_handle tlb_evl_add_evl(struct tlb_event_loop *loop, struct tlb_event_loop *sub_loop);
 
