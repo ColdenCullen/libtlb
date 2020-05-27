@@ -265,34 +265,6 @@ TEST_F(EventLoopPipeTest, PipeReadableWritable) {
   EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
 }
 
-TEST_F(EventLoopTest, Timer) {
-  struct TestState {
-    EventLoopTest *test = nullptr;
-    bool triggered = false;
-  } state;
-  state.test = this;
-
-  static constexpr auto duration = std::chrono::seconds(1);
-
-  tlb_handle timer = tlb_evl_add_timer(
-      loop, std::chrono::duration_cast<std::chrono::milliseconds>(duration).count(),
-      +[](tlb_handle handle, int events, void *userdata) {
-        TestState *state = static_cast<TestState *>(userdata);
-        state->triggered = true;
-      },
-      &state);
-  ASSERT_NE(nullptr, timer);
-
-  ASSERT_EQ(0, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
-  EXPECT_FALSE(state.triggered);
-
-  // Sleep, and include a bit of extra time for safety
-  std::this_thread::sleep_for(duration + s_timer_epsilon);
-
-  EXPECT_EQ(1, tlb_evl_handle_events(loop, s_event_budget, TLB_WAIT_NONE));
-  EXPECT_TRUE(state.triggered);
-}
-
 class EventLoopSubLoopTest : public EventLoopPipeTest {
  public:
   void SetUp() override {
