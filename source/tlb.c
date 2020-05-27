@@ -67,6 +67,7 @@ int tlb_start(struct tlb *tlb) {
   for (size_t ii = 0; ii < target_threads; ++ii) {
     struct tlb_thread *thread = &tlb->threads[ii];
     thread->tlb = tlb;
+    thread->should_stop = false;
     thrd_create(&thread->id, s_thread_start, thread);
     tlb->active_threads++;
   }
