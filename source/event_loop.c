@@ -39,7 +39,7 @@ tlb_handle tlb_evl_add_fd(struct tlb_event_loop *loop, int fd, int events, tlb_o
   struct tlb_subscription *sub = TLB_CHECK(NULL !=, s_sub_new(loop, on_event, userdata));
   sub->ident.fd = fd;
   sub->events = events;
-  sub->sub_mode = TLB_SUB_EDGE;
+  sub->sub_mode = TLB_SUB_EDGE | TLB_SUB_ONESHOT;
 
   tlb_evl_impl_fd_init(sub);
   TLB_CHECK_GOTO(0 ==, tlb_evl_impl_subscribe(loop, sub), sub_failed);

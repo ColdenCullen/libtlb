@@ -5,14 +5,11 @@
 #include <string.h>
 
 #include "test_helpers.h"
-#include <array>
 #include <chrono>
-#include <condition_variable>
-#include <thread>
 
 namespace tlb_test {
 namespace {
-static constexpr auto duration = std::chrono::seconds(1);
+constexpr auto duration = std::chrono::seconds(1);
 
 class TimerTest : public TlbTest {};
 

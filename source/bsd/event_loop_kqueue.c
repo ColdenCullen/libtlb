@@ -43,17 +43,12 @@ int s_kqueue_change(struct tlb_event_loop *loop, struct tlb_subscription *sub, u
 
   /* Calculate flags */
   if (flags == EV_ADD) {
-    switch (sub->sub_mode) {
-      case TLB_SUB_EDGE:
-        flags |= EV_CLEAR;
-        break;
+    if (sub->sub_mode & TLB_SUB_EDGE) {
+      flags |= EV_CLEAR;
+    }
 
-      case TLB_SUB_ONESHOT:
-        flags |= EV_DISPATCH;
-        break;
-
-      default:
-        TLB_ASSERT(false);
+    if (sub->sub_mode & TLB_SUB_ONESHOT) {
+      flags |= EV_DISPATCH;
     }
   }
 

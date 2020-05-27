@@ -75,7 +75,9 @@ class TlbTest : public ::testing::TestWithParam<std::tuple<LoopMode, size_t>> {
       passed = on_event.wait_until(unique_lock, run_until, predicate);
     }
 
-    if (passed) {
+    if (!passed) {
+      ADD_FAILURE() << "Wait operation timed out";
+    } else {
       // If it passed, wait a second (if multithreaded) and try again
       if (thread_count() == 0) {
         unique_lock.unlock();
@@ -84,11 +86,9 @@ class TlbTest : public ::testing::TestWithParam<std::tuple<LoopMode, size_t>> {
       } else {
         std::this_thread::sleep_for(s_timer_epsilon);
       }
-      passed = predicate();
-    }
-
-    if (!passed) {
-      ADD_FAILURE() << "Wait operation timed out";
+      if (!predicate()) {
+        ADD_FAILURE() << "Test passed, but predicate returned false after waiting";
+      }
     }
   }
 
