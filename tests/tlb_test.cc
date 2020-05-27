@@ -42,9 +42,6 @@ class TlbTest : public ::testing::Test {
   tlb_event_loop *loop = nullptr;
 };
 
-TEST_F(TlbTest, StartStop) {
-}
-
 class TlbPipeTest : public TlbTest {
  public:
   void SetUp() override {

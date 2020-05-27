@@ -138,7 +138,6 @@ int tlb_evl_trigger_fire(struct tlb_event_loop *loop, tlb_handle trigger) {
  **********************************************************************************************************************/
 
 void tlb_evl_impl_timer_init(struct tlb_subscription *sub, int timeout) {
-  (void)timeout;
   sub->ident.ident = (uintptr_t)sub;
   sub->sub_mode = TLB_SUB_ONESHOT;
   sub->platform.kqueue.filters[0] = EVFILT_TIMER;
