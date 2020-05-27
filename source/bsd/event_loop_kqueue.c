@@ -2,9 +2,9 @@
 
 #include "tlb/allocator.h"
 #include "tlb/event_loop.h"
+#include "tlb/private/time.h"
 
 #include <sys/event.h>
-#include <time.h>
 #include <unistd.h>
 
 /**********************************************************************************************************************
@@ -168,15 +168,7 @@ int tlb_evl_handle_events(struct tlb_event_loop *loop, size_t budget, int timeou
   int num_events = TLB_MIN(budget, TLB_EV_EVENT_BATCH);
   struct kevent eventlist[TLB_EV_EVENT_BATCH];
 
-  struct timespec timeout_spec = {};
-  if (timeout == TLB_WAIT_NONE) {
-    memset_s(&timeout_spec, sizeof(timeout_spec), 0, sizeof(timeout_spec));
-  } else {
-    static const int millis_per_second = 1000;
-    static const int nanos_per_second = 1000000;
-    timeout_spec.tv_sec = timeout / millis_per_second;
-    timeout_spec.tv_nsec = (timeout % millis_per_second) * nanos_per_second;
-  }
+  struct timespec timeout_spec = tlb_timeout_to_timespec(timeout);
   struct timespec *timeout_ptr = timeout == TLB_WAIT_INDEFINITE ? NULL : &timeout_spec;
 
   num_events = TLB_CHECK(-1 !=, kevent(loop->fd, NULL, 0, eventlist, num_events, timeout_ptr));
