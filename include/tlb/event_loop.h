@@ -38,8 +38,6 @@ tlb_handle tlb_evl_add_timer(struct tlb_event_loop *loop, int timeout, tlb_on_ev
 /** Add a sub-loop */
 tlb_handle tlb_evl_add_evl(struct tlb_event_loop *loop, struct tlb_event_loop *sub_loop);
 
-/** Moves a subscription form one loop to another */
-int tlb_evl_move(struct tlb_event_loop *loop_from, tlb_handle subscription, struct tlb_event_loop *loop_to);
 /** Remove a subscription from the loop */
 int tlb_evl_remove(struct tlb_event_loop *loop, tlb_handle subscription);
 

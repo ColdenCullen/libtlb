@@ -114,14 +114,6 @@ static void s_sub_loop_on_event(tlb_handle subscription, int events, void *userd
  * Move/Remove                                                                                                        *
  **********************************************************************************************************************/
 
-int tlb_evl_move(struct tlb_event_loop *loop_from, tlb_handle subscription, struct tlb_event_loop *loop_to) {
-  struct tlb_subscription *sub = subscription;
-  TLB_CHECK(0 ==, tlb_evl_impl_unsubscribe(loop_from, sub));
-  TLB_CHECK(0 ==, tlb_evl_impl_subscribe(loop_to, sub));
-
-  return 0;
-}
-
 int tlb_evl_remove(struct tlb_event_loop *loop, tlb_handle subscription) {
   struct tlb_subscription *sub = subscription;
   int result = 0;
