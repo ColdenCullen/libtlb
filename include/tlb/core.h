@@ -45,6 +45,7 @@ enum {
 #define TLB_CHECK_RETURN(checker, expr, ret_value) TLB_CHECK_HANDLE(checker, (expr), return (ret_value))
 #define TLB_CHECK_GOTO(checker, expr, label) \
   TLB_CHECK_HANDLE(checker, (expr), goto label) /* NOLINT(bugprone-macro-parentheses) */
+#define TLB_CHECK_ASSERT(checker, expr) TLB_CHECK_HANDLE(checker, (expr), TLB_ASSERT(false))
 #define TLB_CHECK(checker, expr) TLB_CHECK_RETURN(checker, (expr), _)
 
 #define TLB_MIN(a, b)   \
