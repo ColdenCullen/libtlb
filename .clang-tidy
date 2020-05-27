@@ -1,5 +1,5 @@
 ---
-Checks:          'clang-diagnostic-*,clang-analyzer-*,bugprone-*,performance-*,portability-*,readability-*,darwin-*,llvm-header-guard'
+Checks:          'clang-diagnostic-*,clang-analyzer-*,bugprone-*,performance-*,portability-*,readability-*,darwin-*,llvm-header-guard,-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling'
 WarningsAsErrors: '*'
 HeaderFilterRegex: 'include/tlb'
 CheckOptions:

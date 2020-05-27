@@ -32,6 +32,7 @@ enum {
 #define TLB_ASSERT assert
 #define TLB_CONTAINER_OF(ptr, type, member) (void *)(((uint8_t *)(ptr)) - offsetof(type, member))
 #define TLB_ARRAY_LENGTH(array) (sizeof(array) / sizeof((array)[0]))
+#define TLB_ZERO(object) memset(&(object), 0, sizeof(object))
 
 #define TLB_CHECK_HANDLE(checker, expr, handle) \
   ({                                            \

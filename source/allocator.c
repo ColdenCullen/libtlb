@@ -22,7 +22,7 @@ void *tlb_calloc(struct tlb_allocator *alloc, size_t num, size_t size) {
 
   const size_t alloc_size = num * size;
   void *buffer = alloc->vtable->malloc(alloc->userdata, alloc_size);
-  memset_s(buffer, alloc_size, 0, alloc_size);
+  memset(buffer, 0, alloc_size);
   return buffer;
 }
 
