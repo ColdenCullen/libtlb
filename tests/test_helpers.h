@@ -2,7 +2,7 @@
 #define TESTS_TEST_HELPERS_H
 
 #include "tlb/allocator.h"
-#include "tlb/private/event_loop.h"
+#include "tlb/event_loop.h"
 #include "tlb/tlb.h"
 
 #include <gtest/gtest.h>
@@ -26,7 +26,6 @@ enum class LoopMode {
 constexpr size_t s_event_budget = 100;
 constexpr uint64_t s_test_value = 0x0BADFACE;
 constexpr size_t s_thread_count = 5;
-constexpr auto s_timer_epsilon = std::chrono::milliseconds(50);
 
 class TlbTest : public ::testing::TestWithParam<std::tuple<LoopMode, size_t>> {
  public:
@@ -59,18 +58,19 @@ class TlbTest : public ::testing::TestWithParam<std::tuple<LoopMode, size_t>> {
 
   template <typename PredT>
   void wait(const PredT &predicate) {
-    const auto run_until = std::chrono::steady_clock::now() + s_timer_epsilon;
+    const auto timeout = std::chrono::milliseconds(50 * std::max<size_t>(thread_count(), 1));
+    const auto run_until = std::chrono::steady_clock::now() + timeout;
     bool passed = false;
     // Fire the loop if necessary
     if (thread_count() == 0) {
       unique_lock.unlock();
-      while (std::chrono::steady_clock::now() < run_until) {
+      do {
         tlb_evl_handle_events(handled_loop(), 100, 0);
         if (predicate()) {
           passed = true;
           break;
         }
-      }
+      } while (std::chrono::steady_clock::now() < run_until);
       unique_lock.lock();
     } else {
       passed = on_event.wait_until(unique_lock, run_until, predicate);
@@ -85,7 +85,7 @@ class TlbTest : public ::testing::TestWithParam<std::tuple<LoopMode, size_t>> {
         tlb_evl_handle_events(handled_loop(), 100, 0);
         unique_lock.lock();
       } else {
-        std::this_thread::sleep_for(s_timer_epsilon);
+        std::this_thread::sleep_for(timeout);
       }
       if (!predicate()) {
         ADD_FAILURE() << "Test passed, but predicate returned false after waiting";

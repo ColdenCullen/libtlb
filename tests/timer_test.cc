@@ -10,6 +10,7 @@
 namespace tlb_test {
 namespace {
 constexpr auto duration = std::chrono::seconds(1);
+constexpr auto s_timer_epsilon = std::chrono::milliseconds(50);
 
 class TimerTest : public TlbTest {};
 

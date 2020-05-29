@@ -35,10 +35,32 @@ class PipeTest : public TlbTest {
     return tlb_evl_add_fd(loop(), pipe.fd_write, TLB_EV_WRITE, on_event, userdata);
   }
 
+  template <typename T>
+  T Read() {
+    T out;
+    static constexpr size_t size = sizeof(T);
+    EXPECT_EQ(size, tlb_pipe_read(&pipe, &out, size));
+    return out;
+  }
+
+  template <typename T>
+  void Write(const T &in) {
+    static constexpr size_t size = sizeof(T);
+    EXPECT_EQ(size, tlb_pipe_write(&pipe, &in, size));
+  }
+
   tlb_pipe pipe;
 };
 
 TEST_P(PipeTest, OpenClose) {
+}
+
+TEST_P(PipeTest, SubscribeUnsubscribe) {
+  tlb_handle sub = SubscribeRead(
+      +[](tlb_handle handle, int events, void *userdata) {}, nullptr);
+  ASSERT_NE(nullptr, sub);
+
+  EXPECT_EQ(0, tlb_evl_remove(loop(), sub)) << strerror(errno);
 }
 
 TEST_P(PipeTest, PipeReadable) {
@@ -51,8 +73,7 @@ TEST_P(PipeTest, PipeReadable) {
   tlb_handle sub = SubscribeRead(
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
-        uint64_t value = 0;
-        tlb_pipe_read(&state->test->pipe, &value, sizeof(value));
+        const uint64_t value = state->test->Read<uint64_t>();
         EXPECT_EQ(s_test_value, value);
 
         auto lock = state->test->lock();
@@ -62,7 +83,7 @@ TEST_P(PipeTest, PipeReadable) {
       &state);
   ASSERT_NE(nullptr, sub);
 
-  tlb_pipe_write(&pipe, &s_test_value, sizeof(s_test_value));
+  Write(s_test_value);
   wait([&]() { return 1 == state.read_count; });
 }
 
@@ -76,8 +97,7 @@ TEST_P(PipeTest, PipeReadableUnsubscribe) {
   tlb_handle sub = SubscribeRead(
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
-        uint64_t value = 0;
-        tlb_pipe_read(&state->test->pipe, &value, sizeof(value));
+        uint64_t value = state->test->Read<uint64_t>();
         EXPECT_EQ(s_test_value, value);
 
         auto lock = state->test->lock();
@@ -87,14 +107,14 @@ TEST_P(PipeTest, PipeReadableUnsubscribe) {
       &state);
   ASSERT_NE(nullptr, sub);
 
-  tlb_pipe_write(&pipe, &s_test_value, sizeof(s_test_value));
+  Write(s_test_value);
 
   // Handle read
   wait([&]() { return 1 == state.read_count; });
 
   // Unsubscribe and ensure no more events show up
-  EXPECT_EQ(0, tlb_evl_remove(loop(), sub));
-  tlb_pipe_write(&pipe, &s_test_value, sizeof(s_test_value));
+  EXPECT_EQ(0, tlb_evl_remove(loop(), sub)) << strerror(errno);
+  Write(s_test_value);
   wait([&]() { return 1 == state.read_count; });
 }
 
@@ -117,7 +137,7 @@ TEST_P(PipeTest, PipeRecursiveUnsubscribe) {
       &state);
   ASSERT_NE(nullptr, sub);
 
-  tlb_pipe_write(&pipe, &s_test_value, sizeof(s_test_value));
+  Write(s_test_value);
   wait([&]() { return state.read; });
 }
 
@@ -131,8 +151,7 @@ TEST_P(PipeTest, PipeDoubleReadable) {
   tlb_handle sub = SubscribeRead(
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
-        uint64_t value = 0;
-        tlb_pipe_read(&state->test->pipe, &value, sizeof(value));
+        const uint64_t value = state->test->Read<uint64_t>();
         EXPECT_EQ(s_test_value, value);
 
         auto lock = state->test->lock();
@@ -142,11 +161,10 @@ TEST_P(PipeTest, PipeDoubleReadable) {
       &state);
   ASSERT_NE(nullptr, sub);
 
-  tlb_pipe_write(&pipe, &s_test_value, sizeof(s_test_value));
-  tlb_pipe_write(&pipe, &s_test_value, sizeof(s_test_value));
+  Write(s_test_value);
+  Write(s_test_value);
 
-  // Handle read
-  wait([&]() { return 1 == state.read_count; });
+  wait([&]() { return 2 == state.read_count; });
 }
 
 TEST_P(PipeTest, PipeWritable) {
@@ -159,7 +177,7 @@ TEST_P(PipeTest, PipeWritable) {
   tlb_handle sub = SubscribeWrite(
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
-        tlb_pipe_write(&state->test->pipe, &s_test_value, sizeof(s_test_value));
+        state->test->Write(s_test_value);
         tlb_evl_remove(state->test->loop(), handle);
 
         auto lock = state->test->lock();
@@ -171,8 +189,7 @@ TEST_P(PipeTest, PipeWritable) {
 
   wait([&]() { return state.wrote; });
 
-  uint64_t value = 0;
-  tlb_pipe_read(&pipe, &value, sizeof(value));
+  const uint64_t value = Read<uint64_t>();
   EXPECT_EQ(s_test_value, value);
 }
 
@@ -186,8 +203,7 @@ TEST_P(PipeTest, PipeReadableWritable) {
   tlb_handle read_sub = SubscribeRead(
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
-        uint64_t value = 0;
-        tlb_pipe_read(&state->test->pipe, &value, sizeof(value));
+        const uint64_t value = state->test->Read<uint64_t>();
         EXPECT_EQ(s_test_value, value);
 
         auto lock = state->test->lock();
@@ -200,12 +216,9 @@ TEST_P(PipeTest, PipeReadableWritable) {
   tlb_handle write_sub = SubscribeWrite(
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
-        tlb_pipe_write(&state->test->pipe, &s_test_value, sizeof(s_test_value));
+        state->test->Write(s_test_value);
         // Make sure we don't get writable again
         tlb_evl_remove(state->test->loop(), handle);
-
-        auto lock = state->test->lock();
-        state->test->notify();
       },
       &state);
   ASSERT_NE(nullptr, write_sub);
