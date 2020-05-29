@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -60,5 +61,8 @@ enum {
     typeof(b) _b = (b); \
     _a > _b ? _a : _b;  \
   })
+
+#define TLB_LOG(text) fprintf(stderr, "[%lu] %s\n", thrd_current(), text);
+#define TLB_LOGF(format, ...) fprintf(stderr, "[%lu] " format "\n", thrd_current(), __VA_ARGS__);
 
 #endif /* TLB_CORE_H */

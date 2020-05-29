@@ -155,9 +155,6 @@ int tlb_evl_impl_unsubscribe(struct tlb_event_loop *loop, struct tlb_subscriptio
  * Handle events *
  **********************************************************************************************************************/
 
-#include <inttypes.h>
-#include <stdio.h>
-
 int tlb_evl_handle_events(struct tlb_event_loop *loop, size_t budget, int timeout) {
   /* Zero budget means just keep truckin */
   if (budget == 0) {
@@ -176,7 +173,7 @@ int tlb_evl_handle_events(struct tlb_event_loop *loop, size_t budget, int timeou
     const struct kevent *ev = &eventlist[ii];
     struct tlb_subscription *sub = ev->udata;
 
-    printf("[%p] Handling event %p\n", thrd_current(), ev->udata);
+    TLB_LOG_EVENT(sub, "Handling");
 
     sub->state = TLB_STATE_RUNNING;
     sub->on_event(sub, s_events_from_kevent(ev), sub->userdata);
@@ -184,7 +181,7 @@ int tlb_evl_handle_events(struct tlb_event_loop *loop, size_t budget, int timeou
     switch (sub->state) {
       case TLB_STATE_SUBBED:
         /* Not possible */
-        printf("[%p] Event %p in bad state!\n", thrd_current(), ev->udata);
+        TLB_LOG_EVENT(sub, "In bad state!");
         TLB_ASSERT(false);
         break;
 
@@ -194,7 +191,7 @@ int tlb_evl_handle_events(struct tlb_event_loop *loop, size_t budget, int timeou
           s_kqueue_change(loop, sub, EV_ENABLE);
         }
         sub->state = TLB_STATE_SUBBED;
-        printf("[%p] Event %p set to SUBBED\n", thrd_current(), ev->udata);
+        TLB_LOG_EVENT(sub, "Set to SUBBED");
         break;
 
       case TLB_STATE_UNSUBBED:

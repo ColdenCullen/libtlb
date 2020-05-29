@@ -40,7 +40,13 @@ struct tlb_subscription {
       uintptr_t data;
     } kqueue;
   } platform;
+
+  const char *name;
 };
+
+#define TLB_LOG_EVENT(sub, text) TLB_LOGF("[%s:%p] %s", ((struct tlb_subscription *)(sub))->name, (void *)(sub), text)
+#define TLB_LOGF_EVENT(sub, format, ...) \
+  TLB_LOGF("[%s:%p] " format, ((struct tlb_subscription *)(sub))->name, (void *)(sub), __VA_ARGS__)
 
 enum {
   TLB_EV_EVENT_BATCH = 100,
