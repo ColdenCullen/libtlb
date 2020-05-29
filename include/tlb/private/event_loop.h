@@ -34,7 +34,10 @@ struct tlb_subscription {
 
   /* Reserved for each platform to use */
   union {
-    uint32_t epoll; /* TBD */
+    struct tlb_evl_epoll {
+      bool close;             /* Whether this fd should be closed on removal (timers & triggers) */
+      tlb_on_event *on_event; /* Some events need to wrap on_event, this keeps track of the original */
+    } epoll;
     struct tlb_evl_kqueue {
       int16_t filters[2];
       uintptr_t data;
