@@ -18,8 +18,10 @@
 
 #  ifdef TLB_HAS_THREADS_H
 #    include <threads.h>
+#    define PRIthread "lu"
 #  else
 #    include <tinycthread.h>
+#    define PRIthread "p"
 #  endif
 #endif /* C/C++ */
 
@@ -28,9 +30,13 @@ enum {
   TLB_FAIL = -1,
 };
 
-#define TLB_BIT(b) (1ull << (b))
+#ifndef NDEBUG
+#  define TLB_ASSERT assert
+#else /* release */
+#  define TLB_ASSERT(x) (void)(x)
+#endif
 
-#define TLB_ASSERT assert
+#define TLB_BIT(b) (1ull << (b))
 #define TLB_CONTAINER_OF(ptr, type, member) (void *)(((uint8_t *)(ptr)) - offsetof(type, member))
 #define TLB_ARRAY_LENGTH(array) (sizeof(array) / sizeof((array)[0]))
 #define TLB_ZERO(object) memset(&(object), 0, sizeof(object))
@@ -62,7 +68,7 @@ enum {
     _a > _b ? _a : _b;  \
   })
 
-#define TLB_LOG(text) fprintf(stderr, "[%lu] %s\n", thrd_current(), text);
-#define TLB_LOGF(format, ...) fprintf(stderr, "[%lu] " format "\n", thrd_current(), __VA_ARGS__);
+#define TLB_LOG(text) TLB_LOGF("%s", text)
+#define TLB_LOGF(format, ...) fprintf(stderr, "[%" PRIthread "] " format "\n", thrd_current(), __VA_ARGS__);
 
 #endif /* TLB_CORE_H */
