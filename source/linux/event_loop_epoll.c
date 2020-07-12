@@ -97,36 +97,6 @@ void tlb_evl_impl_fd_init(struct tlb_subscription *sub) {
 }
 
 /**********************************************************************************************************************
- * Triggers *
- **********************************************************************************************************************/
-
-static tlb_on_event s_on_trigger;
-
-void tlb_evl_impl_trigger_init(struct tlb_subscription *sub) {
-  sub->ident.fd = TLB_CHECK_ASSERT(-1 !=, eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK));
-  sub->events = TLB_EV_READ;
-  sub->sub_mode = TLB_SUB_EDGE;
-
-  sub->platform.epoll.close = true;
-  sub->platform.epoll.on_event = sub->on_event;
-  sub->on_event = s_on_trigger;
-}
-
-int tlb_evl_trigger_fire(struct tlb_event_loop *loop, tlb_handle trigger) {
-  (void)loop;
-  struct tlb_subscription *sub = trigger;
-  TLB_LOG_EVENT(sub, "Firing");
-  return eventfd_write(sub->ident.fd, 1);
-}
-
-static void s_on_trigger(tlb_handle trigger, int events, void *userdata) {
-  struct tlb_subscription *sub = trigger;
-  uint64_t value = 0;
-  eventfd_read(sub->ident.fd, &value);
-  sub->platform.epoll.on_event(trigger, events, userdata);
-}
-
-/**********************************************************************************************************************
  * Timers *
  **********************************************************************************************************************/
 

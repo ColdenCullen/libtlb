@@ -35,7 +35,7 @@ struct tlb_subscription {
   /* Reserved for each platform to use */
   union {
     struct tlb_evl_epoll {
-      bool close;             /* Whether this fd should be closed on removal (timers & triggers) */
+      bool close;             /* Whether this fd should be closed on removal (timers) */
       tlb_on_event *on_event; /* Some events need to wrap on_event, this keeps track of the original */
     } epoll;
     struct tlb_evl_kqueue {
@@ -64,7 +64,6 @@ void tlb_evl_cleanup(struct tlb_event_loop *loop);
 
 /* Initializes specific types to the loop */
 void tlb_evl_impl_fd_init(struct tlb_subscription *sub);
-void tlb_evl_impl_trigger_init(struct tlb_subscription *sub);
 void tlb_evl_impl_timer_init(struct tlb_subscription *sub, int timeout);
 
 /* All subscribe/unsubscribe implementations are the same */

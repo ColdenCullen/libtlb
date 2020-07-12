@@ -3,6 +3,7 @@
 #include "tlb/core.h"
 
 #include "tlb/allocator.h"
+#include "tlb/pipe.h"
 #include "tlb/private/event_loop.h"
 
 enum {
@@ -13,7 +14,8 @@ struct tlb_thread {
   thrd_t id;
   struct tlb *tlb;
   struct tlb_event_loop loop;
-  struct tlb_subscription thread_stop;
+  struct tlb_pipe thread_stop_pipe;
+  struct tlb_subscription thread_stop_sub;
   volatile bool should_stop;
 };
 
@@ -29,6 +31,7 @@ struct tlb {
   struct tlb_thread threads[];
 };
 
+static const uint64_t s_thread_stop_value = 0xBADC0FFEE;
 static int s_thread_start(void *arg);
 static tlb_on_event s_thread_stop;
 
@@ -84,7 +87,7 @@ int tlb_stop(struct tlb *tlb) {
     /* Fire the trigger, and wait for the event to be handled */
     struct tlb_thread *thread = &tlb->threads[ii];
     thread->should_stop = true;
-    tlb_evl_trigger_fire(&thread->loop, &thread->thread_stop);
+    tlb_pipe_write(&thread->thread_stop_pipe, &s_thread_stop_value, sizeof(s_thread_stop_value));
   }
 
   for (size_t ii = 0; ii < num_threads; ++ii) {
@@ -106,20 +109,25 @@ static int s_thread_start(void *arg) {
   tlb_evl_init(&thread->loop, tlb->alloc);
   tlb_handle super_loop = tlb_evl_add_evl(&thread->loop, &tlb->super_loop);
 
-  thread->thread_stop = (struct tlb_subscription){
+  tlb_pipe_open(&thread->thread_stop_pipe);
+  thread->thread_stop_sub = (struct tlb_subscription){
+      .ident = {.fd = thread->thread_stop_pipe.fd_read},
+      .events = TLB_EV_READ,
+      .sub_mode = TLB_SUB_EDGE,
       .on_event = s_thread_stop,
       .userdata = thread,
       .name = "tlb-thread-stop",
   };
-  tlb_evl_impl_trigger_init(&thread->thread_stop);
-  tlb_evl_impl_subscribe(&thread->loop, &thread->thread_stop);
+  tlb_evl_impl_fd_init(&thread->thread_stop_sub);
+  tlb_evl_impl_subscribe(&thread->loop, &thread->thread_stop_sub);
 
   /* Wait for events */
   while (!thread->should_stop) {
     tlb_evl_handle_events(&thread->loop, 0, TLB_WAIT_INDEFINITE);
   }
 
-  tlb_evl_impl_subscribe(&thread->loop, &thread->thread_stop);
+  tlb_evl_impl_unsubscribe(&thread->loop, &thread->thread_stop_sub);
+  tlb_pipe_close(&thread->thread_stop_pipe);
   tlb_evl_remove(&thread->loop, super_loop);
   tlb_evl_cleanup(&thread->loop);
 
@@ -131,7 +139,12 @@ static void s_thread_stop(tlb_handle subscription, int events, void *userdata) {
   (void)events;
   (void)userdata;
 
-  /* no-op */
+  struct tlb_thread *thread = userdata;
+
+  /* Just read the data sent to clear the buffer */
+  uint64_t value = 0;
+  tlb_pipe_read(&thread->thread_stop_pipe, &value, sizeof(value));
+  TLB_ASSERT(value == s_thread_stop_value);
 }
 
 struct tlb_event_loop *tlb_get_evl(struct tlb *tlb) {

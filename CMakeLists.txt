@@ -34,6 +34,7 @@ if(TLB_HAS_THREADS_H)
   list(APPEND TLB_DEFINES "TLB_HAS_THREADS_H")
 else()
   message(STATUS "Using TinyCThreads")
+  set(TINYCTHREAD_DISABLE_TESTS OFF)
   # Get TinyCThreads
   include(FetchContent)
   FetchContent_Declare(

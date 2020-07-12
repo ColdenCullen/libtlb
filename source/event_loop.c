@@ -56,21 +56,6 @@ sub_failed:
 }
 
 /**********************************************************************************************************************
- * Trigger                                                                                                            *
- **********************************************************************************************************************/
-
-tlb_handle tlb_evl_add_trigger(struct tlb_event_loop *loop, tlb_on_event *trigger, void *userdata) {
-  struct tlb_subscription *sub = TLB_CHECK(NULL !=, s_sub_new(loop, trigger, userdata, "trigger"));
-  tlb_evl_impl_trigger_init(sub);
-  TLB_CHECK_GOTO(0 ==, tlb_evl_impl_subscribe(loop, sub), sub_failed);
-  return sub;
-
-sub_failed:
-  tlb_free(loop->alloc, sub);
-  return NULL;
-}
-
-/**********************************************************************************************************************
  * Timer                                                                                                              *
  **********************************************************************************************************************/
 

@@ -105,30 +105,6 @@ void tlb_evl_impl_fd_init(struct tlb_subscription *sub) {
 }
 
 /**********************************************************************************************************************
- * Triggers *
- **********************************************************************************************************************/
-
-void tlb_evl_impl_trigger_init(struct tlb_subscription *sub) {
-  sub->ident.ident = (uintptr_t)sub;
-  sub->sub_mode = TLB_SUB_EDGE;
-  sub->platform.kqueue.filters[0] = EVFILT_USER;
-}
-
-int tlb_evl_trigger_fire(struct tlb_event_loop *loop, tlb_handle trigger) {
-  struct tlb_subscription *sub = trigger;
-  struct kevent change;
-  EV_SET(&change,          /* kev */
-         sub->ident.ident, /* ident */
-         EVFILT_USER,      /* filter */
-         EV_ENABLE,        /* flags */
-         NOTE_TRIGGER,     /* fflags */
-         0,                /* data */
-         sub               /* udata */
-  );
-  return kevent(loop->fd, &change, 1, NULL, 0, NULL);
-}
-
-/**********************************************************************************************************************
  * Timers *
  **********************************************************************************************************************/
 
