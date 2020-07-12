@@ -23,6 +23,8 @@ enum class LoopMode {
   TlbLoop,
 };
 
+void PrintTo(const LoopMode &mode, std::ostream *out);
+
 constexpr size_t s_event_budget = 100;
 constexpr uint64_t s_test_value = 0x0BADFACE;
 constexpr size_t s_thread_count = 5;

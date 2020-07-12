@@ -6,6 +6,20 @@
 
 namespace tlb_test {
 
+void PrintTo(const LoopMode &mode, std::ostream *out) {
+  switch (mode) {
+    case LoopMode::RawLoop:
+      *out << "Raw";
+      break;
+    case LoopMode::NestedLoop:
+      *out << "Nested";
+      break;
+    case LoopMode::TlbLoop:
+      *out << "TLB";
+      break;
+  }
+}
+
 static void *s_malloc(void *userdata, size_t size) {
   return malloc(size);
 }
