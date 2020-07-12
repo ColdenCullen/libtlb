@@ -109,6 +109,7 @@ static int s_thread_start(void *arg) {
   thread->thread_stop = (struct tlb_subscription){
       .on_event = s_thread_stop,
       .userdata = thread,
+      .name = "tlb-thread-stop",
   };
   tlb_evl_impl_trigger_init(&thread->thread_stop);
   tlb_evl_impl_subscribe(&thread->loop, &thread->thread_stop);
