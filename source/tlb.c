@@ -87,7 +87,7 @@ int tlb_stop(struct tlb *tlb) {
     /* Fire the trigger, and wait for the event to be handled */
     struct tlb_thread *thread = &tlb->threads[ii];
     thread->should_stop = true;
-    tlb_pipe_write(&thread->thread_stop_pipe, &s_thread_stop_value, sizeof(s_thread_stop_value));
+    tlb_pipe_write(&thread->thread_stop_pipe, s_thread_stop_value);
   }
 
   for (size_t ii = 0; ii < num_threads; ++ii) {
@@ -143,7 +143,7 @@ static void s_thread_stop(tlb_handle subscription, int events, void *userdata) {
 
   /* Just read the data sent to clear the buffer */
   uint64_t value = 0;
-  tlb_pipe_read(&thread->thread_stop_pipe, &value, sizeof(value));
+  tlb_pipe_read(&thread->thread_stop_pipe, &value);
   TLB_ASSERT(value == s_thread_stop_value);
 }
 
