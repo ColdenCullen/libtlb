@@ -4,6 +4,10 @@
 #include "tlb/allocator.h"
 #include "tlb/event_loop.h"
 
+/**
+ * NOTE: This structure is THREAD-COMPATIBLE, not thread-safe. All operations on the underlying event loop are thread
+ * safe, but you should not call multiple functions declared in this file from multiple threads at the same time.
+ */
 struct tlb;
 
 struct tlb_options {
