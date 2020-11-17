@@ -91,6 +91,34 @@ TEST_P(PipeTest, Readable) {
   wait([&]() { return 1 == state.read_count; });
 }
 
+TEST_P(PipeTest, ReadableRecursive) {
+  static constexpr size_t kTargetReadCount = 100;
+  struct TestState {
+    PipeTest *test = nullptr;
+    size_t read_count = 0;
+  } state;
+  state.test = this;
+
+  tlb_handle sub = SubscribeRead(
+      +[](tlb_handle handle, int events, void *userdata) {
+        TestState *state = static_cast<TestState *>(userdata);
+        const size_t value = state->test->Read<size_t>();
+        EXPECT_EQ(state->read_count, value);
+
+        if (++state->read_count == kTargetReadCount) {
+          auto lock = state->test->lock();
+          state->test->notify();
+        } else {
+          state->test->Write(state->read_count);
+        }
+      },
+      &state);
+  ASSERT_NE(nullptr, sub);
+
+  Write(state.read_count);
+  wait([&]() { return kTargetReadCount == state.read_count; });
+}
+
 TEST_P(PipeTest, ReadableUnsubscribe) {
   struct TestState {
     PipeTest *test = nullptr;
