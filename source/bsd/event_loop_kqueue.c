@@ -93,8 +93,6 @@ void tlb_evl_cleanup(struct tlb_event_loop *loop) {
  **********************************************************************************************************************/
 
 void tlb_evl_impl_fd_init(struct tlb_subscription *sub) {
-  TLB_ASSERT(sub->sub_mode);
-
   size_t num_filters = 0;
   if (sub->events & TLB_EV_READ) {
     sub->platform.kqueue.filters[num_filters++] = EVFILT_READ;
@@ -110,7 +108,7 @@ void tlb_evl_impl_fd_init(struct tlb_subscription *sub) {
 
 void tlb_evl_impl_timer_init(struct tlb_subscription *sub, int timeout) {
   sub->ident.ident = (uintptr_t)sub;
-  sub->sub_mode = TLB_SUB_ONESHOT;
+  sub->sub_mode |= TLB_SUB_ONESHOT;
   sub->platform.kqueue.filters[0] = EVFILT_TIMER;
   sub->platform.kqueue.data = timeout;
 }
@@ -163,7 +161,7 @@ int tlb_evl_handle_events(struct tlb_event_loop *loop, size_t budget, int timeou
 
       case TLB_STATE_RUNNING:
         /* Resubscribe the event */
-        if (sub->sub_mode == TLB_SUB_ONESHOT) {
+        if (sub->sub_mode & TLB_SUB_ONESHOT) {
           s_kqueue_change(loop, sub, EV_ENABLE);
         }
         sub->state = TLB_STATE_SUBBED;

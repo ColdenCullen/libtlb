@@ -17,6 +17,7 @@ enum tlb_sub_state {
 struct tlb_event_loop {
   struct tlb_allocator *alloc;
   int fd;
+  bool super_loop;
 };
 
 struct tlb_subscription {
@@ -28,7 +29,7 @@ struct tlb_subscription {
   tlb_on_event *on_event;
   void *userdata;
 
-  uint8_t events;         /* enum enum tlb_events */
+  uint8_t events;         /* enum tlb_events */
   uint8_t sub_mode;       /* enum tlb_sub_flags */
   volatile uint8_t state; /* enum tlb_sub_state */
 
@@ -56,6 +57,9 @@ enum {
 };
 
 TLB_EXTERN_C_BEGIN
+
+/* on_event callback for subloops to process all events */
+tlb_on_event tlb_evl_sub_loop_on_event;
 
 /* Implemented per platform */
 

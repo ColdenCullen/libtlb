@@ -42,6 +42,7 @@ struct tlb *tlb_new(struct tlb_allocator *alloc, struct tlb_options options) {
   tlb->options = options;
 
   TLB_CHECK_GOTO(0 ==, tlb_evl_init(&tlb->super_loop, alloc), cleanup);
+  tlb->super_loop.super_loop = true;
 
   TLB_CHECK_GOTO(thrd_success ==, mtx_init(&tlb->thread_mutex, mtx_plain), cleanup);
 
@@ -107,7 +108,18 @@ static int s_thread_start(void *arg) {
   struct tlb *tlb = thread->tlb;
 
   tlb_evl_init(&thread->loop, tlb->alloc);
-  tlb_handle super_loop = tlb_evl_add_evl(&thread->loop, &tlb->super_loop);
+
+  /* Subscribe the super loop to the thread loop */
+  struct tlb_subscription super_loop_sub = {
+      .ident = {.fd = tlb->super_loop.fd},
+      .events = TLB_EV_READ,
+      .sub_mode = TLB_SUB_EDGE,
+      .on_event = tlb_evl_sub_loop_on_event,
+      .userdata = &tlb->super_loop,
+      .name = "super-loop",
+  };
+  tlb_evl_impl_fd_init(&super_loop_sub);
+  TLB_CHECK_GOTO(0 ==, tlb_evl_impl_subscribe(&thread->loop, &super_loop_sub), sub_failed);
 
   tlb_pipe_open(&thread->thread_stop_pipe);
   thread->thread_stop_sub = (struct tlb_subscription){
@@ -127,11 +139,16 @@ static int s_thread_start(void *arg) {
   }
 
   tlb_evl_impl_unsubscribe(&thread->loop, &thread->thread_stop_sub);
+  tlb_evl_impl_unsubscribe(&thread->loop, &super_loop_sub);
+
   tlb_pipe_close(&thread->thread_stop_pipe);
-  tlb_evl_remove(&thread->loop, super_loop);
   tlb_evl_cleanup(&thread->loop);
 
   return thrd_success;
+
+sub_failed:
+  TLB_LOG("Failed to subscribe super loop to thread loop!");
+  return thrd_error;
 }
 
 static void s_thread_stop(tlb_handle subscription, int events, void *userdata) {

@@ -111,7 +111,7 @@ void tlb_evl_impl_timer_init(struct tlb_subscription *sub, int timeout) {
 
   sub->ident.fd = timerfd;
   sub->events = TLB_EV_READ;
-  sub->sub_mode = TLB_SUB_EDGE;
+  sub->sub_mode |= TLB_SUB_EDGE;
 
   sub->platform.epoll.close = true;
   sub->platform.epoll.on_event = sub->on_event;
