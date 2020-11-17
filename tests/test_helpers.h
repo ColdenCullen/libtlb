@@ -23,6 +23,8 @@ enum class LoopMode {
   TlbLoop,
 };
 
+std::ostream &Log();
+
 void PrintTo(const LoopMode &mode, std::ostream *out);
 
 constexpr size_t s_event_budget = 100;

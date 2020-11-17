@@ -40,11 +40,15 @@ class PipeTest : public TlbTest {
     T out;
     static constexpr size_t size = sizeof(T);
     EXPECT_EQ(size, tlb_pipe_read_buf(&pipe, &out, size));
+
+    Log() << "Reading from pipe " << &pipe << ": " << out << std::endl;
     return out;
   }
 
   template <typename T>
   void Write(const T &in) {
+    Log() << "Writing to pipe " << &pipe << ": " << in << std::endl;
+
     static constexpr size_t size = sizeof(T);
     EXPECT_EQ(size, tlb_pipe_write_buf(&pipe, &in, size));
   }

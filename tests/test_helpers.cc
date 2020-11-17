@@ -4,7 +4,13 @@
 #include "tlb/event_loop.h"
 #include "tlb/tlb.h"
 
+#include <iostream>
+
 namespace tlb_test {
+
+std::ostream &Log() {
+  return std::cerr;
+}
 
 void PrintTo(const LoopMode &mode, std::ostream *out) {
   switch (mode) {
