@@ -60,44 +60,7 @@ class TlbTest : public ::testing::TestWithParam<std::tuple<LoopMode, size_t>> {
     }
   }
 
-  template <typename PredT>
-  void wait(const PredT &predicate) {
-    const auto timeout = std::chrono::milliseconds(50 * std::max<size_t>(thread_count(), 1));
-    const auto run_until = std::chrono::steady_clock::now() + timeout;
-    bool passed = false;
-    // Fire the loop if necessary
-    if (thread_count() == 0) {
-      unique_lock.unlock();
-      do {
-        tlb_evl_handle_events(handled_loop(), 100, 0);
-        if (predicate()) {
-          passed = true;
-          break;
-        }
-      } while (std::chrono::steady_clock::now() < run_until);
-      unique_lock.lock();
-    } else {
-      passed = on_event.wait_until(unique_lock, run_until, predicate);
-    }
-
-    if (!passed) {
-      ADD_FAILURE() << "Wait operation timed out";
-    } else {
-      // If it passed, wait a second (if multithreaded) and try again
-      if (thread_count() == 0) {
-        unique_lock.unlock();
-        tlb_evl_handle_events(handled_loop(), 100, 0);
-        unique_lock.lock();
-      } else {
-        std::this_thread::sleep_for(timeout);
-      }
-      if (!predicate()) {
-        ADD_FAILURE() << "Test passed, but predicate returned false after waiting";
-      }
-    }
-  }
-
-  void HandleEvents();
+  void wait(const std::function<bool()> &predicate);
 
   void SetUp() override;
   void TearDown() override;
