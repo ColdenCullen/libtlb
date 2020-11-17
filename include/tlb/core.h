@@ -69,6 +69,7 @@ enum {
   })
 
 #define TLB_LOG(text) TLB_LOGF("%s", text)
-#define TLB_LOGF(format, ...) fprintf(stderr, "[%" PRIthread "] " format "\n", thrd_current(), __VA_ARGS__);
+#define TLB_LOGF(format, ...) \
+  fprintf(stderr, "[%" PRIthread "] %s:%d " format "\n", thrd_current(), __FILE__, __LINE__, __VA_ARGS__);
 
 #endif /* TLB_CORE_H */
