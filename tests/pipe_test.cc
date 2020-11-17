@@ -67,7 +67,7 @@ TEST_P(PipeTest, SubscribeUnsubscribe) {
   EXPECT_EQ(0, tlb_evl_remove(loop(), sub)) << strerror(errno);
 }
 
-TEST_P(PipeTest, PipeReadable) {
+TEST_P(PipeTest, Readable) {
   struct TestState {
     PipeTest *test = nullptr;
     int read_count = 0;
@@ -91,7 +91,7 @@ TEST_P(PipeTest, PipeReadable) {
   wait([&]() { return 1 == state.read_count; });
 }
 
-TEST_P(PipeTest, PipeReadableUnsubscribe) {
+TEST_P(PipeTest, ReadableUnsubscribe) {
   struct TestState {
     PipeTest *test = nullptr;
     int read_count = 0;
@@ -122,7 +122,7 @@ TEST_P(PipeTest, PipeReadableUnsubscribe) {
   wait([&]() { return 1 == state.read_count; });
 }
 
-TEST_P(PipeTest, PipeRecursiveUnsubscribe) {
+TEST_P(PipeTest, RecursiveUnsubscribe) {
   struct TestState {
     PipeTest *test = nullptr;
     bool read = false;
@@ -145,7 +145,7 @@ TEST_P(PipeTest, PipeRecursiveUnsubscribe) {
   wait([&]() { return state.read; });
 }
 
-TEST_P(PipeTest, PipeDoubleReadable) {
+TEST_P(PipeTest, DoubleReadable) {
   struct TestState {
     PipeTest *test = nullptr;
     int read_count = 0;
@@ -171,7 +171,7 @@ TEST_P(PipeTest, PipeDoubleReadable) {
   wait([&]() { return 2 == state.read_count; });
 }
 
-TEST_P(PipeTest, PipeWritable) {
+TEST_P(PipeTest, Writable) {
   struct TestState {
     PipeTest *test = nullptr;
     bool wrote = false;
@@ -197,7 +197,7 @@ TEST_P(PipeTest, PipeWritable) {
   EXPECT_EQ(s_test_value, value);
 }
 
-TEST_P(PipeTest, PipeReadableWritable) {
+TEST_P(PipeTest, ReadableWritable) {
   struct TestState {
     PipeTest *test = nullptr;
     int read_count = 0;
