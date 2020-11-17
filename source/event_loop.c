@@ -116,19 +116,24 @@ int tlb_evl_remove(struct tlb_event_loop *loop, tlb_handle subscription) {
   struct tlb_subscription *sub = subscription;
   int result = 0;
 
-  switch (sub->state) {
-    case TLB_STATE_SUBBED:
-      result = tlb_evl_impl_unsubscribe(loop, sub);
-      tlb_free(loop->alloc, sub);
-      break;
+  if (sub->sub_mode & TLB_SUB_ONESHOT) {
+    switch (sub->oneshot_state) {
+      case TLB_STATE_SUBBED:
+        result = tlb_evl_impl_unsubscribe(loop, sub);
+        tlb_free(loop->alloc, sub);
+        break;
 
-    case TLB_STATE_RUNNING:
-      sub->state = TLB_STATE_UNSUBBED;
-      break;
+      case TLB_STATE_RUNNING:
+        sub->oneshot_state = TLB_STATE_UNSUBBED;
+        break;
 
-    case TLB_STATE_UNSUBBED:
-      /* no-op */
-      break;
+      case TLB_STATE_UNSUBBED:
+        /* no-op */
+        break;
+    }
+  } else {
+    result = tlb_evl_impl_unsubscribe(loop, sub);
+    tlb_free(loop->alloc, sub);
   }
 
   return result;

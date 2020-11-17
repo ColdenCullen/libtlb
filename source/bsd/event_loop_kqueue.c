@@ -39,7 +39,7 @@ static int s_events_from_kevent(const struct kevent *kevent) {
 
 int s_kqueue_change(struct tlb_event_loop *loop, struct tlb_subscription *sub, uint16_t flags) {
   struct kevent cl[2];
-  int num_changes = 0;
+  size_t num_changes = 0;
 
   /* Calculate flags */
   if (flags == EV_ADD) {
@@ -93,6 +93,8 @@ void tlb_evl_cleanup(struct tlb_event_loop *loop) {
  **********************************************************************************************************************/
 
 void tlb_evl_impl_fd_init(struct tlb_subscription *sub) {
+  /* kqueue always wants the uintptr_t version, so force a cast. */
+  sub->ident.ident = sub->ident.fd;
   size_t num_filters = 0;
   if (sub->events & TLB_EV_READ) {
     sub->platform.kqueue.filters[num_filters++] = EVFILT_READ;
@@ -149,30 +151,30 @@ int tlb_evl_handle_events(struct tlb_event_loop *loop, size_t budget, int timeou
 
     TLB_LOG_EVENT(sub, "Handling");
 
-    sub->state = TLB_STATE_RUNNING;
+    sub->oneshot_state = TLB_STATE_RUNNING;
     sub->on_event(sub, s_events_from_kevent(ev), sub->userdata);
 
-    switch (sub->state) {
-      case TLB_STATE_SUBBED:
-        /* Not possible */
-        TLB_LOG_EVENT(sub, "In bad state!");
-        TLB_ASSERT(false);
-        break;
+    if (sub->sub_mode & TLB_SUB_ONESHOT) {
+      switch (sub->oneshot_state) {
+        case TLB_STATE_SUBBED:
+          /* Not possible */
+          TLB_LOG_EVENT(sub, "In bad state!");
+          TLB_ASSERT(false);
+          break;
 
-      case TLB_STATE_RUNNING:
-        /* Resubscribe the event */
-        if (sub->sub_mode & TLB_SUB_ONESHOT) {
+        case TLB_STATE_RUNNING:
+          /* Resubscribe the event */
+          sub->oneshot_state = TLB_STATE_SUBBED;
           s_kqueue_change(loop, sub, EV_ENABLE);
-        }
-        sub->state = TLB_STATE_SUBBED;
-        TLB_LOG_EVENT(sub, "Set to SUBBED");
-        break;
+          TLB_LOG_EVENT(sub, "Set to SUBBED");
+          break;
 
-      case TLB_STATE_UNSUBBED:
-        /* Force-remove the subscription */
-        sub->state = TLB_STATE_SUBBED;
-        tlb_evl_remove(loop, sub);
-        break;
+        case TLB_STATE_UNSUBBED:
+          /* Force-remove the subscription */
+          sub->oneshot_state = TLB_STATE_SUBBED;
+          tlb_evl_remove(loop, sub);
+          break;
+      }
     }
   }
 

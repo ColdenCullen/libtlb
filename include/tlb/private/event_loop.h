@@ -29,9 +29,9 @@ struct tlb_subscription {
   tlb_on_event *on_event;
   void *userdata;
 
-  uint8_t events;         /* enum tlb_events */
-  uint8_t sub_mode;       /* enum tlb_sub_flags */
-  volatile uint8_t state; /* enum tlb_sub_state */
+  uint8_t events;                 /* enum tlb_events */
+  uint8_t sub_mode;               /* enum tlb_sub_flags */
+  volatile uint8_t oneshot_state; /* enum tlb_sub_state */
 
   /* Reserved for each platform to use */
   union {
