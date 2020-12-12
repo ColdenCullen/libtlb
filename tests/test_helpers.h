@@ -75,9 +75,7 @@ class TlbTest : public ::testing::TestWithParam<std::tuple<LoopMode, size_t>> {
   tlb_event_loop *evl;
 
   union {
-    struct {
-      tlb *tlb;
-    } tlb;
+    tlb *tlb_inst;
     struct {
       tlb_event_loop *super_loop;
       tlb_handle loop_sub;

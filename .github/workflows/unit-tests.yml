@@ -1,7 +1,7 @@
 # Copyright (c) 2019-2020 Luca Cappa
 # Released under the term specified in file LICENSE.txt
 # SPDX short identifier: MIT
-name: unit-tests-debug
+name: unit-tests
 on: [push]
 
 jobs:
@@ -23,4 +23,4 @@ jobs:
           build-dir: ${{ runner.workspace }}/build',
           build-type: ${{ matrix.config }}
           configure-options: -Wno-dev
-          run-test: true
+          run-test: false
