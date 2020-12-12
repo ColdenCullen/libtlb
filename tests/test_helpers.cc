@@ -110,9 +110,9 @@ void TlbTest::SetUp() {
       break;
 
     case LoopMode::TlbLoop:
-      tlb.tlb = tlb_new(alloc(), {.max_thread_count = thread_count()});
-      ASSERT_NE(nullptr, tlb.tlb);
-      evl = tlb_get_evl(tlb.tlb);
+      tlb_inst = tlb_new(alloc(), {.max_thread_count = thread_count()});
+      ASSERT_NE(nullptr, tlb_inst);
+      evl = tlb_get_evl(tlb_inst);
       break;
   }
 
@@ -134,7 +134,7 @@ void TlbTest::TearDown() {
       break;
 
     case LoopMode::TlbLoop:
-      tlb_destroy(tlb.tlb);
+      tlb_destroy(tlb_inst);
       break;
   }
 
@@ -146,7 +146,7 @@ void TlbTest::Stop() {
 
   switch (mode()) {
     case LoopMode::TlbLoop:
-      tlb_stop(tlb.tlb);
+      tlb_stop(tlb_inst);
       break;
 
     case LoopMode::RawLoop:
@@ -163,7 +163,7 @@ void TlbTest::Restart() {
   running = true;
 
   if (mode() == LoopMode::TlbLoop) {
-    tlb_start(tlb.tlb);
+    tlb_start(tlb_inst);
   } else {
     for (size_t i = 0; i < thread_count(); ++i) {
       threads.emplace_back([=]() {

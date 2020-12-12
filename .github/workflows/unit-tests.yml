@@ -1,0 +1,26 @@
+# Copyright (c) 2019-2020 Luca Cappa
+# Released under the term specified in file LICENSE.txt
+# SPDX short identifier: MIT
+name: unit-tests
+on: [push]
+
+jobs:
+  job:
+    name: ${{ matrix.os }}-unit-tests-${{ matrix.config }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        config: [Debug, Release]
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: lukka/get-cmake@latest
+      - name: Run CMake
+        uses: ashutoshvarma/action-cmake-build@master
+        id: runcmake
+        with:
+          build-dir: ${{ runner.workspace }}/build',
+          build-type: ${{ matrix.config }}
+          configure-options: -Wno-dev -DCMAKE_CXX_FLAGS=-std=c++11
+          run-test: false

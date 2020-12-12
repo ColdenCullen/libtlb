@@ -52,9 +52,7 @@ struct tlb_subscription {
 #define TLB_LOGF_EVENT(sub, format, ...) \
   TLB_LOGF("[%s:%p] " format, ((struct tlb_subscription *)(sub))->name, (void *)(sub), __VA_ARGS__)
 
-enum {
-  TLB_EV_EVENT_BATCH = 100,
-};
+#define TLB_EV_EVENT_BATCH 100U
 
 TLB_EXTERN_C_BEGIN
 
