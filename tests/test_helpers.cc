@@ -4,6 +4,7 @@
 #include "tlb/event_loop.h"
 #include "tlb/tlb.h"
 
+#include <chrono>
 #include <iostream>
 
 namespace tlb_test {
@@ -53,9 +54,9 @@ tlb_allocator *TlbTest::alloc() {
   return &alloc;
 }
 
-void TlbTest::wait(const std::function<bool()> &predicate) {
-  const auto timeout = std::chrono::milliseconds(50 * std::max<size_t>(thread_count(), 1));
-  const auto run_until = std::chrono::steady_clock::now() + timeout;
+void TlbTest::wait(const std::function<bool()> &predicate, std::chrono::milliseconds timeout) {
+  const auto total_timeout = timeout * std::max<size_t>(thread_count(), 1);
+  const auto run_until = std::chrono::steady_clock::now() + total_timeout;
   bool passed = false;
   // Fire the loop if necessary
   if (thread_count() == 0) {

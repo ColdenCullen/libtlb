@@ -58,7 +58,7 @@ class TlbTest : public ::testing::TestWithParam<std::tuple<LoopMode, size_t>> {
     }
   }
 
-  void wait(const std::function<bool()> &predicate);
+  void wait(const std::function<bool()> &predicate, std::chrono::milliseconds timeout = std::chrono::milliseconds(50));
 
   void SetUp() override;
   void TearDown() override;
