@@ -19,7 +19,6 @@ extern tlb_allocator *test_allocator();
 
 enum class LoopMode {
   RawLoop,
-  NestedLoop,
   TlbLoop,
 };
 
@@ -94,9 +93,6 @@ class TlbTest : public ::testing::TestWithParam<std::tuple<LoopMode, size_t>> {
   INSTANTIATE_TEST_SUITE_P(                                                                                   \
       RawLoop, suite,                                                                                         \
       ::testing::Combine(::testing::Values(LoopMode::RawLoop), ::testing::Values<size_t>(0, 1, 2, 4, 8)));    \
-  INSTANTIATE_TEST_SUITE_P(                                                                                   \
-      NestedLoop, suite,                                                                                      \
-      ::testing::Combine(::testing::Values(LoopMode::NestedLoop), ::testing::Values<size_t>(0, 1, 2, 4, 8))); \
   INSTANTIATE_TEST_SUITE_P(                                                                                   \
       TlbLoop, suite, ::testing::Combine(::testing::Values(LoopMode::TlbLoop), ::testing::Values<size_t>(1, 2, 4, 8)))
 }  // namespace tlb_test

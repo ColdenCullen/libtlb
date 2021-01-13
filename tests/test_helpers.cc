@@ -17,9 +17,6 @@ void PrintTo(const LoopMode &mode, std::ostream *out) {
     case LoopMode::RawLoop:
       *out << "Raw";
       break;
-    case LoopMode::NestedLoop:
-      *out << "Nested";
-      break;
     case LoopMode::TlbLoop:
       *out << "TLB";
       break;
@@ -103,12 +100,6 @@ void TlbTest::SetUp() {
       evl = tlb_evl_new(alloc());
       break;
 
-    case LoopMode::NestedLoop:
-      evl = tlb_evl_new(alloc());
-      super_loop.super_loop = tlb_evl_new(alloc());
-      super_loop.loop_sub = tlb_evl_add_evl(super_loop.super_loop, evl);
-      break;
-
     case LoopMode::TlbLoop:
       tlb_inst = tlb_new(alloc(), {.max_thread_count = thread_count()});
       ASSERT_NE(nullptr, tlb_inst);
@@ -125,12 +116,6 @@ void TlbTest::TearDown() {
   switch (mode()) {
     case LoopMode::RawLoop:
       tlb_evl_destroy(evl);
-      break;
-
-    case LoopMode::NestedLoop:
-      tlb_evl_remove(super_loop.super_loop, super_loop.loop_sub);
-      tlb_evl_destroy(evl);
-      tlb_evl_destroy(super_loop.super_loop);
       break;
 
     case LoopMode::TlbLoop:
@@ -150,7 +135,6 @@ void TlbTest::Stop() {
       break;
 
     case LoopMode::RawLoop:
-    case LoopMode::NestedLoop:
       for (auto &thread : threads) {
         thread.join();
       }
@@ -179,8 +163,6 @@ tlb_event_loop *TlbTest::handled_loop() {
   switch (mode()) {
     case LoopMode::RawLoop:
       return evl;
-    case LoopMode::NestedLoop:
-      return super_loop.super_loop;
     case LoopMode::TlbLoop:
       return nullptr;
   }
