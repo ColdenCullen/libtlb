@@ -167,11 +167,11 @@ int tlb_evl_handle_events(struct tlb_event_loop *loop, size_t budget, int timeou
     TLB_LOG_EVENT(sub, "Handling");
 
     /* Cache this off because sub can become invalid during on_event */
-    const uint8_t sub_mode = sub->sub_mode;
+    const bool is_oneshot = sub->sub_mode & TLB_SUB_ONESHOT;
     sub->oneshot_state = TLB_STATE_RUNNING;
     sub->on_event(sub, s_events_from_epoll(event), sub->userdata);
 
-    if (sub_mode & TLB_SUB_ONESHOT) {
+    if (is_oneshot) {
       switch ((enum tlb_sub_state)sub->oneshot_state) {
         case TLB_STATE_SUBBED:
           /* Not possible */
