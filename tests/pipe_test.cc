@@ -7,8 +7,6 @@
 #include <string.h>
 
 #include "test_helpers.h"
-#include <array>
-#include <chrono>
 
 namespace tlb_test {
 namespace {
@@ -36,21 +34,26 @@ class PipeTest : public TlbTest {
   }
 
   template <typename T>
-  T Read() {
-    T out;
-    static constexpr size_t size = sizeof(T);
-    EXPECT_EQ(size, tlb_pipe_read_buf(&pipe, &out, size));
+  bool Read(T &data) {
+    data = {};
+    static constexpr size_t expected_size = sizeof(T);
+    const ssize_t actual_size = tlb_pipe_read_buf(&pipe, &data, expected_size);
+    // Check for no waiting data
+    if (actual_size == -1) {
+      return false;
+    }
+    EXPECT_EQ(expected_size, actual_size);
 
-    Log() << "Reading from pipe " << &pipe << ": " << out << std::endl;
-    return out;
+    Log() << "Reading from pipe " << &pipe << ": " << data << std::endl;
+    return true;
   }
 
   template <typename T>
-  void Write(const T &in) {
-    Log() << "Writing to pipe " << &pipe << ": " << in << std::endl;
+  void Write(const T &data) {
+    Log() << "Writing to pipe " << &pipe << ": " << data << std::endl;
 
     static constexpr size_t size = sizeof(T);
-    EXPECT_EQ(size, tlb_pipe_write_buf(&pipe, &in, size));
+    EXPECT_EQ(size, tlb_pipe_write_buf(&pipe, &data, size));
   }
 
   tlb_pipe pipe;
@@ -77,7 +80,8 @@ TEST_P(PipeTest, Readable) {
   tlb_handle sub = SubscribeRead(
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
-        const uint64_t value = state->test->Read<uint64_t>();
+        uint64_t value;
+        ASSERT_TRUE(state->test->Read(value));
         EXPECT_EQ(s_test_value, value);
 
         auto lock = state->test->lock();
@@ -102,7 +106,8 @@ TEST_P(PipeTest, ReadableRecursive) {
   tlb_handle sub = SubscribeRead(
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
-        const size_t value = state->test->Read<size_t>();
+        size_t value;
+        ASSERT_TRUE(state->test->Read<size_t>(value));
         EXPECT_EQ(state->read_count, value);
 
         if (++state->read_count == kTargetReadCount) {
@@ -129,7 +134,8 @@ TEST_P(PipeTest, ReadableUnsubscribe) {
   tlb_handle sub = SubscribeRead(
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
-        uint64_t value = state->test->Read<uint64_t>();
+        uint64_t value;
+        ASSERT_TRUE(state->test->Read(value));
         EXPECT_EQ(s_test_value, value);
 
         auto lock = state->test->lock();
@@ -183,12 +189,16 @@ TEST_P(PipeTest, DoubleReadable) {
   tlb_handle sub = SubscribeRead(
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
-        const uint64_t value = state->test->Read<uint64_t>();
-        EXPECT_EQ(s_test_value, value);
+        uint64_t value;
+        const int initial_read_count = state->read_count;
+        while (state->test->Read(value)) {
+          EXPECT_EQ(s_test_value, value);
 
-        auto lock = state->test->lock();
-        state->read_count++;
-        state->test->notify();
+          auto lock = state->test->lock();
+          state->read_count++;
+          state->test->notify();
+        }
+        EXPECT_GT(state->read_count, initial_read_count) << "Event was triggered, but no data was available";
       },
       &state);
   ASSERT_NE(nullptr, sub);
@@ -221,7 +231,8 @@ TEST_P(PipeTest, Writable) {
 
   wait([&]() { return state.wrote; });
 
-  const uint64_t value = Read<uint64_t>();
+  uint64_t value;
+  ASSERT_TRUE(Read(value));
   EXPECT_EQ(s_test_value, value);
 }
 
@@ -235,7 +246,8 @@ TEST_P(PipeTest, ReadableWritable) {
   tlb_handle read_sub = SubscribeRead(
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
-        const uint64_t value = state->test->Read<uint64_t>();
+        uint64_t value;
+        ASSERT_TRUE(state->test->Read(value));
         EXPECT_EQ(s_test_value, value);
 
         auto lock = state->test->lock();
