@@ -3,6 +3,8 @@
 
 #include "tlb/core.h"
 
+#include "tlb/event_loop.h"
+
 #include <time.h>
 
 TLB_EXTERN_C_BEGIN

@@ -117,7 +117,7 @@ int tlb_evl_remove(struct tlb_event_loop *loop, tlb_handle subscription) {
   int result = 0;
 
   if (sub->sub_mode & TLB_SUB_ONESHOT) {
-    switch (sub->oneshot_state) {
+    switch ((enum tlb_sub_state)sub->oneshot_state) {
       case TLB_STATE_SUBBED:
         result = tlb_evl_impl_unsubscribe(loop, sub);
         tlb_free(loop->alloc, sub);

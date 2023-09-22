@@ -8,7 +8,6 @@
 #include <gtest/gtest.h>
 
 #include <atomic>
-#include <chrono>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
@@ -89,11 +88,11 @@ class TlbTest : public ::testing::TestWithParam<std::tuple<LoopMode, size_t>> {
   std::condition_variable on_event;
 };
 
-#define TLB_INSTANTIATE_TEST(suite)                                                                           \
-  INSTANTIATE_TEST_SUITE_P(                                                                                   \
-      RawLoop, suite,                                                                                         \
-      ::testing::Combine(::testing::Values(LoopMode::RawLoop), ::testing::Values<size_t>(0, 1, 2, 4, 8)));    \
-  INSTANTIATE_TEST_SUITE_P(                                                                                   \
+#define TLB_INSTANTIATE_TEST(suite)                                                                        \
+  INSTANTIATE_TEST_SUITE_P(                                                                                \
+      RawLoop, suite,                                                                                      \
+      ::testing::Combine(::testing::Values(LoopMode::RawLoop), ::testing::Values<size_t>(0, 1, 2, 4, 8))); \
+  INSTANTIATE_TEST_SUITE_P(                                                                                \
       TlbLoop, suite, ::testing::Combine(::testing::Values(LoopMode::TlbLoop), ::testing::Values<size_t>(1, 2, 4, 8)))
 }  // namespace tlb_test
 

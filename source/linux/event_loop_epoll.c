@@ -15,59 +15,59 @@
  **********************************************************************************************************************/
 
 static int s_events_from_epoll(const struct epoll_event *event) {
-  int ev = 0;
+  int tlb_events = 0;
 
   if (event->events & EPOLLIN) {
-    ev |= TLB_EV_READ;
+    tlb_events |= TLB_EV_READ;
   }
 
   if (event->events & EPOLLOUT) {
-    ev |= TLB_EV_WRITE;
+    tlb_events |= TLB_EV_WRITE;
   }
 
   if (event->events & EPOLLRDHUP) {
-    ev |= TLB_EV_CLOSE;
+    tlb_events |= TLB_EV_CLOSE;
   }
 
   if (event->events & EPOLLHUP) {
-    ev |= TLB_EV_CLOSE;
+    tlb_events |= TLB_EV_CLOSE;
   }
 
   if (event->events & EPOLLERR) {
-    ev |= TLB_EV_ERROR;
+    tlb_events |= TLB_EV_ERROR;
   }
 
-  return ev;
+  return tlb_events;
 }
 
 uint32_t s_events_to_epoll(struct tlb_subscription *sub) {
-  uint32_t ev = 0;
+  uint32_t epoll_events = 0;
 
   if (sub->events & TLB_EV_READ) {
-    ev |= EPOLLIN;
+    epoll_events |= EPOLLIN;
   }
   if (sub->events & TLB_EV_WRITE) {
-    ev |= EPOLLOUT;
+    epoll_events |= EPOLLOUT;
   }
 
   if (sub->sub_mode & TLB_SUB_EDGE) {
-    ev |= EPOLLET;
+    epoll_events |= EPOLLET;
   }
   if (sub->sub_mode & TLB_SUB_ONESHOT) {
-    ev |= EPOLLONESHOT;
+    epoll_events |= EPOLLONESHOT;
   }
 
-  return ev;
+  return epoll_events;
 }
 
-int s_epoll_change(struct tlb_event_loop *loop, struct tlb_subscription *sub, int op) {
+int s_epoll_change(struct tlb_event_loop *loop, struct tlb_subscription *sub, int operation) {
   struct epoll_event change;
 
   /* Calculate flags */
   change.events = s_events_to_epoll(sub);
   change.data.ptr = sub;
 
-  return epoll_ctl(loop->fd, op, sub->ident.fd, &change);
+  return epoll_ctl(loop->fd, operation, sub->ident.fd, &change);
 }
 
 /**********************************************************************************************************************
@@ -161,16 +161,16 @@ int tlb_evl_handle_events(struct tlb_event_loop *loop, size_t budget, int timeou
 
   num_events = TLB_CHECK(-1 !=, epoll_wait(loop->fd, eventlist, num_events, timeout));
   for (int ii = 0; ii < num_events; ii++) {
-    const struct epoll_event *ev = &eventlist[ii];
-    struct tlb_subscription *sub = ev->data.ptr;
+    const struct epoll_event *event = &eventlist[ii];
+    struct tlb_subscription *sub = event->data.ptr;
 
     TLB_LOG_EVENT(sub, "Handling");
 
     sub->oneshot_state = TLB_STATE_RUNNING;
-    sub->on_event(sub, s_events_from_epoll(ev), sub->userdata);
+    sub->on_event(sub, s_events_from_epoll(event), sub->userdata);
 
     if (sub->sub_mode & TLB_SUB_ONESHOT) {
-      switch (sub->oneshot_state) {
+      switch ((enum tlb_sub_state)sub->oneshot_state) {
         case TLB_STATE_SUBBED:
           /* Not possible */
           TLB_LOG_EVENT(sub, "In bad state!");

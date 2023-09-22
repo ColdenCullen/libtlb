@@ -1,9 +1,13 @@
 ---
-Checks:          'clang-diagnostic-*,clang-analyzer-*,bugprone-*,performance-*,portability-*,readability-*,darwin-*,llvm-header-guard,-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling'
-WarningsAsErrors: '*'
-HeaderFilterRegex: 'include/tlb'
+Checks: "clang-diagnostic-*,clang-analyzer-*,bugprone-*,performance-*,portability-*,readability-*,darwin-*,llvm-header-guard,-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling"
+WarningsAsErrors: "*"
+HeaderFilterRegex: "include/tlb"
 CheckOptions:
-  - key:             readability-braces-around-statements.ShortStatementLines
-    value:           '0'
-...
+  - key: readability-braces-around-statements.ShortStatementLines
+    value: "0"
+  - key: readability-identifier-length.IgnoredVariableNames
+    value: "_"
+  - key: readability-identifier-length.IgnoredParameterNames
+    value: "fd"
+---
 

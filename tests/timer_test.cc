@@ -1,5 +1,4 @@
 #include "tlb/event_loop.h"
-#include "tlb/pipe.h"
 
 #include <gtest/gtest.h>
 #include <string.h>
