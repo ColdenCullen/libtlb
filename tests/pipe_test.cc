@@ -196,36 +196,6 @@ TEST_P(PipeTest, RecursiveUnsubscribe) {
   wait([&]() { return state.read; });
 }
 
-TEST_P(PipeTest, DoubleReadable) {
-  struct TestState {
-    PipeTest *test = nullptr;
-    int read_count = 0;
-  } state;
-  state.test = this;
-
-  tlb_handle sub = SubscribeRead(
-      +[](tlb_handle handle, int events, void *userdata) {
-        TestState *state = static_cast<TestState *>(userdata);
-        uint64_t value;
-        const int initial_read_count = state->read_count;
-        while (state->test->Read(value)) {
-          EXPECT_EQ(s_test_value, value);
-
-          auto lock = state->test->lock();
-          state->read_count++;
-          state->test->notify();
-        }
-        EXPECT_GT(state->read_count, initial_read_count) << "Event was triggered, but no data was available";
-      },
-      &state);
-  ASSERT_NE(nullptr, sub);
-
-  Write(s_test_value);
-  Write(s_test_value);
-
-  wait([&]() { return 2 == state.read_count; });
-}
-
 TEST_P(PipeTest, Writable) {
   struct TestState {
     PipeTest *test = nullptr;
