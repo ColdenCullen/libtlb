@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "test_helpers.h"
+#include <unordered_set>
 
 namespace tlb_test {
 namespace {
@@ -20,17 +21,32 @@ class PipeTest : public TlbTest {
   }
 
   void TearDown() override {
+    auto open_subs_copy = open_subscriptions;
+    for (tlb_handle sub : open_subs_copy) {
+      Unsubscribe(sub);
+    }
+    open_subs_copy.clear();
+
     tlb_pipe_close(&pipe);
 
     TlbTest::TearDown();
   }
 
   tlb_handle SubscribeRead(tlb_on_event *on_event, void *userdata) {
-    return tlb_evl_add_fd(loop(), pipe.fd_read, TLB_EV_READ, on_event, userdata);
+    const tlb_handle handle = tlb_evl_add_fd(loop(), pipe.fd_read, TLB_EV_READ, on_event, userdata);
+    open_subscriptions.emplace(handle);
+    return handle;
   }
 
   tlb_handle SubscribeWrite(tlb_on_event *on_event, void *userdata) {
-    return tlb_evl_add_fd(loop(), pipe.fd_write, TLB_EV_WRITE, on_event, userdata);
+    const tlb_handle handle = tlb_evl_add_fd(loop(), pipe.fd_write, TLB_EV_WRITE, on_event, userdata);
+    open_subscriptions.emplace(handle);
+    return handle;
+  }
+
+  void Unsubscribe(tlb_handle subscription) {
+    open_subscriptions.erase(subscription);
+    EXPECT_EQ(0, tlb_evl_remove(loop(), subscription)) << strerror(errno);
   }
 
   template <typename T>
@@ -57,6 +73,7 @@ class PipeTest : public TlbTest {
   }
 
   tlb_pipe pipe;
+  std::unordered_set<tlb_handle> open_subscriptions;
 };
 
 TEST_P(PipeTest, OpenClose) {
@@ -67,7 +84,7 @@ TEST_P(PipeTest, SubscribeUnsubscribe) {
       +[](tlb_handle handle, int events, void *userdata) {}, nullptr);
   ASSERT_NE(nullptr, sub);
 
-  EXPECT_EQ(0, tlb_evl_remove(loop(), sub)) << strerror(errno);
+  Unsubscribe(sub);
 }
 
 TEST_P(PipeTest, Readable) {
@@ -151,7 +168,7 @@ TEST_P(PipeTest, ReadableUnsubscribe) {
   wait([&]() { return 1 == state.read_count; });
 
   // Unsubscribe and ensure no more events show up
-  EXPECT_EQ(0, tlb_evl_remove(loop(), sub)) << strerror(errno);
+  Unsubscribe(sub);
   Write(s_test_value);
   wait([&]() { return 1 == state.read_count; });
 }
@@ -166,7 +183,7 @@ TEST_P(PipeTest, RecursiveUnsubscribe) {
   tlb_handle sub = SubscribeRead(
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
-        tlb_evl_remove(state->test->loop(), handle);
+        state->test->Unsubscribe(handle);
 
         auto lock = state->test->lock();
         state->read = true;
@@ -220,7 +237,7 @@ TEST_P(PipeTest, Writable) {
       +[](tlb_handle handle, int events, void *userdata) {
         TestState *state = static_cast<TestState *>(userdata);
         state->test->Write(s_test_value);
-        tlb_evl_remove(state->test->loop(), handle);
+        state->test->Unsubscribe(handle);
 
         auto lock = state->test->lock();
         state->wrote = true;
@@ -262,7 +279,7 @@ TEST_P(PipeTest, ReadableWritable) {
         TestState *state = static_cast<TestState *>(userdata);
         state->test->Write(s_test_value);
         // Make sure we don't get writable again
-        tlb_evl_remove(state->test->loop(), handle);
+        state->test->Unsubscribe(handle);
       },
       &state);
   ASSERT_NE(nullptr, write_sub);
