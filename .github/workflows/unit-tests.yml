@@ -24,3 +24,4 @@ jobs:
           build-type: ${{ matrix.config }}
           configure-options: -Wno-dev -DCMAKE_CXX_FLAGS=-std=c++11
           run-test: true
+          ctest-options: --output-on-failure
