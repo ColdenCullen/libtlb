@@ -276,6 +276,12 @@ class MultiPipeTest : public TlbTest {
   }
 
   void TearDown() override {
+    auto open_subs_copy = open_subscriptions;
+    for (tlb_handle sub : open_subs_copy) {
+      tlb_evl_remove(loop(), sub);
+    }
+    open_subs_copy.clear();
+
     for (auto &pipe : pipes) {
       tlb_pipe_close(&pipe);
     }
@@ -285,13 +291,17 @@ class MultiPipeTest : public TlbTest {
 
   void SubscribeRead(tlb_on_event *on_event, void *userdata) {
     for (const auto &pipe : pipes) {
-      ASSERT_NE(nullptr, tlb_evl_add_fd(loop(), pipe.fd_read, TLB_EV_READ, on_event, userdata));
+      tlb_handle handle = tlb_evl_add_fd(loop(), pipe.fd_read, TLB_EV_READ, on_event, userdata);
+      ASSERT_NE(nullptr, handle);
+      open_subscriptions.emplace(handle);
     }
   }
 
   void SubscribeWrite(tlb_on_event *on_event, void *userdata) {
     for (const auto &pipe : pipes) {
-      ASSERT_NE(nullptr, tlb_evl_add_fd(loop(), pipe.fd_write, TLB_EV_WRITE, on_event, userdata));
+      tlb_handle handle = tlb_evl_add_fd(loop(), pipe.fd_write, TLB_EV_WRITE, on_event, userdata);
+      ASSERT_NE(nullptr, handle);
+      open_subscriptions.emplace(handle);
     }
   }
 
@@ -322,6 +332,7 @@ class MultiPipeTest : public TlbTest {
   }
 
   std::array<tlb_pipe, kPipeCount> pipes;
+  std::unordered_set<tlb_handle> open_subscriptions;
 
   size_t pipe_index = 0;
 };
