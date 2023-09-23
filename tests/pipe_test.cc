@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "test_helpers.h"
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <unordered_set>
@@ -328,7 +329,11 @@ class MultiPipeTest : public TlbTest {
     static constexpr size_t size = sizeof(T);
     EXPECT_EQ(size, tlb_pipe_write_buf(&pipe, &in, size));
 
-    pipe_index = (pipe_index + 6) % pipes.size();
+    pipe_index = (pipe_index + logical_thread_count()) % pipes.size();
+  }
+
+  static size_t logical_thread_count() {
+    return std::max(1UL, thread_count());
   }
 
   std::array<tlb_pipe, kPipeCount> pipes;
@@ -361,11 +366,14 @@ TEST_P(MultiPipeTest, Readible) {
       &state);
 
   /* Start by writing to a pipe per thread */
-  for (size_t i = 0; i < thread_count(); ++i) {
+  for (size_t i = 0; i < logical_thread_count(); ++i) {
     Write(s_test_value);
   }
-  wait([&]() { return state.read_count >= kTargetReadCount && state.read_count <= kTargetReadCount + thread_count(); },
-       std::chrono::milliseconds(7500) / thread_count());
+  wait(
+      [&]() {
+        return state.read_count >= kTargetReadCount && state.read_count <= kTargetReadCount + logical_thread_count();
+      },
+      std::chrono::milliseconds(7500) / logical_thread_count());
 }
 
 TLB_INSTANTIATE_TEST(MultiPipeTest);
