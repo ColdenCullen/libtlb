@@ -23,4 +23,5 @@ jobs:
           build-dir: ${{ runner.workspace }}/build',
           build-type: ${{ matrix.config }}
           configure-options: -Wno-dev -DCMAKE_CXX_FLAGS=-std=c++11
-          run-test: false
+          run-test: ${{ matrix.os == 'ubuntu-latest' }}
+          ctest-options: --output-on-failure
