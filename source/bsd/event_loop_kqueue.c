@@ -162,8 +162,8 @@ int tlb_evl_handle_events(struct tlb_event_loop *loop, size_t budget, int timeou
       case TLB_STATE_RUNNING:
         /* Resubscribe the event */
         sub->state = TLB_STATE_SUBBED;
-        s_kqueue_change(loop, sub, EV_ENABLE);
         TLB_LOG_EVENT(sub, "Set to SUBBED");
+        s_kqueue_change(loop, sub, EV_ENABLE);
         break;
 
       case TLB_STATE_UNSUBBED:
