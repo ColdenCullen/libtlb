@@ -33,10 +33,6 @@ static struct tlb_subscription *s_sub_new(struct tlb_event_loop *loop, tlb_on_ev
       .name = name,
   };
 
-  if (loop->super_loop) {
-    sub->sub_mode |= TLB_SUB_ONESHOT;
-  }
-
   return sub;
 }
 
@@ -116,27 +112,22 @@ int tlb_evl_remove(struct tlb_event_loop *loop, tlb_handle subscription) {
   struct tlb_subscription *sub = subscription;
   int result = 0;
 
-  if (sub->sub_mode & TLB_SUB_ONESHOT) {
-    switch ((enum tlb_sub_state)sub->oneshot_state) {
-      case TLB_STATE_SUBBED:
-        TLB_LOG_EVENT(sub, "ONESHOT & SUBBED, unsubbing and freeing");
-        result = tlb_evl_impl_unsubscribe(loop, sub);
-        tlb_free(loop->alloc, sub);
-        break;
+  TLB_LOG_EVENT(sub, "Unsubbing:");
+  switch ((enum tlb_sub_state)sub->state) {
+    case TLB_STATE_SUBBED:
+      TLB_LOG_EVENT(sub, "  SUBBED, unsubbing and freeing");
+      result = tlb_evl_impl_unsubscribe(loop, sub);
+      tlb_free(loop->alloc, sub);
+      break;
 
-      case TLB_STATE_RUNNING:
-        TLB_LOG_EVENT(sub, "ONESHOT & RUNNING, Setting oneshot_state");
-        sub->oneshot_state = TLB_STATE_UNSUBBED;
-        break;
+    case TLB_STATE_RUNNING:
+      TLB_LOG_EVENT(sub, "  RUNNING, Setting state");
+      sub->state = TLB_STATE_UNSUBBED;
+      break;
 
-      case TLB_STATE_UNSUBBED:
-        /* no-op */
-        break;
-    }
-  } else {
-    TLB_LOG_EVENT(sub, "!ONESHOT, unsubbing and freeing");
-    result = tlb_evl_impl_unsubscribe(loop, sub);
-    tlb_free(loop->alloc, sub);
+    case TLB_STATE_UNSUBBED:
+      /* no-op */
+      break;
   }
 
   return result;

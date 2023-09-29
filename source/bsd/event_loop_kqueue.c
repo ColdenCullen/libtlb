@@ -43,12 +43,10 @@ int s_kqueue_change(struct tlb_event_loop *loop, struct tlb_subscription *sub, u
 
   /* Calculate flags */
   if (flags == EV_ADD) {
+    /* All subscriptions are "oneshot" subscriptions */
+    flags |= EV_DISPATCH;
     if (sub->sub_mode & TLB_SUB_EDGE) {
       flags |= EV_CLEAR;
-    }
-
-    if (sub->sub_mode & TLB_SUB_ONESHOT) {
-      flags |= EV_DISPATCH;
     }
   }
 
@@ -110,7 +108,6 @@ void tlb_evl_impl_fd_init(struct tlb_subscription *sub) {
 
 void tlb_evl_impl_timer_init(struct tlb_subscription *sub, int timeout) {
   sub->ident.ident = (uintptr_t)sub;
-  sub->sub_mode |= TLB_SUB_ONESHOT;
   sub->platform.kqueue.filters[0] = EVFILT_TIMER;
   sub->platform.kqueue.data = timeout;
 }
@@ -152,31 +149,28 @@ int tlb_evl_handle_events(struct tlb_event_loop *loop, size_t budget, int timeou
     TLB_LOG_EVENT(sub, "Handling");
 
     /* Cache this off because sub can become invalid during on_event */
-    const bool is_oneshot = sub->sub_mode & TLB_SUB_ONESHOT;
-    sub->oneshot_state = TLB_STATE_RUNNING;
+    sub->state = TLB_STATE_RUNNING;
     sub->on_event(sub, s_events_from_kevent(ev), sub->userdata);
 
-    if (is_oneshot) {
-      switch (sub->oneshot_state) {
-        case TLB_STATE_SUBBED:
-          /* Not possible */
-          TLB_LOG_EVENT(sub, "In bad state!");
-          TLB_ASSERT(false);
-          break;
+    switch (sub->state) {
+      case TLB_STATE_SUBBED:
+        /* Not possible */
+        TLB_LOG_EVENT(sub, "In bad state!");
+        TLB_ASSERT(false);
+        break;
 
-        case TLB_STATE_RUNNING:
-          /* Resubscribe the event */
-          sub->oneshot_state = TLB_STATE_SUBBED;
-          s_kqueue_change(loop, sub, EV_ENABLE);
-          TLB_LOG_EVENT(sub, "Set to SUBBED");
-          break;
+      case TLB_STATE_RUNNING:
+        /* Resubscribe the event */
+        sub->state = TLB_STATE_SUBBED;
+        s_kqueue_change(loop, sub, EV_ENABLE);
+        TLB_LOG_EVENT(sub, "Set to SUBBED");
+        break;
 
-        case TLB_STATE_UNSUBBED:
-          /* Force-remove the subscription */
-          sub->oneshot_state = TLB_STATE_SUBBED;
-          tlb_evl_remove(loop, sub);
-          break;
-      }
+      case TLB_STATE_UNSUBBED:
+        /* Force-remove the subscription */
+        sub->state = TLB_STATE_SUBBED;
+        tlb_evl_remove(loop, sub);
+        break;
     }
   }
 
