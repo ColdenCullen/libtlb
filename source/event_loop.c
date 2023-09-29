@@ -1,5 +1,7 @@
 #include "tlb/private/event_loop.h"
 
+#include "tlb/event_loop.h"
+
 #include <errno.h>
 
 /**********************************************************************************************************************
@@ -40,11 +42,14 @@ static struct tlb_subscription *s_sub_new(struct tlb_event_loop *loop, tlb_on_ev
  * File descriptor                                                                                                    *
  **********************************************************************************************************************/
 
-tlb_handle tlb_evl_add_fd(struct tlb_event_loop *loop, int fd, int events, tlb_on_event *on_event, void *userdata) {
+tlb_handle tlb_evl_add_fd(struct tlb_event_loop *loop, int fd, int events, bool edge_trigger, tlb_on_event *on_event,
+                          void *userdata) {
   struct tlb_subscription *sub = TLB_CHECK(NULL !=, s_sub_new(loop, on_event, userdata, "fd"));
   sub->ident.fd = fd;
   sub->events = events;
-  sub->sub_mode |= TLB_SUB_EDGE;
+  if (edge_trigger) {
+    sub->sub_mode |= TLB_SUB_EDGE;
+  }
 
   tlb_evl_impl_fd_init(sub);
   TLB_CHECK_GOTO(0 ==, tlb_evl_impl_subscribe(loop, sub), sub_failed);
@@ -76,18 +81,12 @@ sub_failed:
  **********************************************************************************************************************/
 
 tlb_handle tlb_evl_add_evl(struct tlb_event_loop *loop, struct tlb_event_loop *sub_loop) {
-  struct tlb_subscription *sub = TLB_CHECK(NULL !=, s_sub_new(loop, tlb_evl_sub_loop_on_event, sub_loop, "sub-loop"));
-  sub->ident.fd = sub_loop->fd;
-  sub->events = TLB_EV_READ;
-  sub->sub_mode |= 0;
-
-  tlb_evl_impl_fd_init(sub);
-  TLB_CHECK_GOTO(0 ==, tlb_evl_impl_subscribe(loop, sub), sub_failed);
+  struct tlb_subscription *sub =
+      tlb_evl_add_fd(loop, sub_loop->fd, TLB_EV_READ, false, tlb_evl_sub_loop_on_event, sub_loop);
+  if (sub) {
+    sub->name = "sub-loop";
+  }
   return sub;
-
-sub_failed:
-  tlb_free(loop->alloc, sub);
-  return NULL;
 }
 
 void tlb_evl_sub_loop_on_event(tlb_handle subscription, int events, void *userdata) {
