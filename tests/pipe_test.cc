@@ -32,14 +32,14 @@ class PipeTest : public TlbTest {
     TlbTest::TearDown();
   }
 
-  tlb_handle SubscribeRead(tlb_on_event *on_event, void *userdata) {
-    const tlb_handle handle = tlb_evl_add_fd(loop(), pipe.fd_read, TLB_EV_READ, on_event, userdata);
+  tlb_handle SubscribeRead(tlb_on_event *on_event, void *userdata, bool edge_trigger = true) {
+    const tlb_handle handle = tlb_evl_add_fd(loop(), pipe.fd_read, TLB_EV_READ, edge_trigger, on_event, userdata);
     open_subscriptions.emplace(handle);
     return handle;
   }
 
-  tlb_handle SubscribeWrite(tlb_on_event *on_event, void *userdata) {
-    const tlb_handle handle = tlb_evl_add_fd(loop(), pipe.fd_write, TLB_EV_WRITE, on_event, userdata);
+  tlb_handle SubscribeWrite(tlb_on_event *on_event, void *userdata, bool edge_trigger = true) {
+    const tlb_handle handle = tlb_evl_add_fd(loop(), pipe.fd_write, TLB_EV_WRITE, edge_trigger, on_event, userdata);
     open_subscriptions.emplace(handle);
     return handle;
   }

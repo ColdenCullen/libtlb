@@ -26,7 +26,8 @@ struct tlb_event_loop *tlb_evl_new(struct tlb_allocator *alloc);
 void tlb_evl_destroy(struct tlb_event_loop *loop);
 
 /** Subscribe a file descriptor to the event loop. */
-tlb_handle tlb_evl_add_fd(struct tlb_event_loop *loop, int fd, int events, tlb_on_event *on_event, void *userdata);
+tlb_handle tlb_evl_add_fd(struct tlb_event_loop *loop, int fd, int events, bool edge_trigger, tlb_on_event *on_event,
+                          void *userdata);
 
 /** Add a timer to fire in timeout milliseconds */
 tlb_handle tlb_evl_add_timer(struct tlb_event_loop *loop, int timeout, tlb_on_event *trigger, void *userdata);
