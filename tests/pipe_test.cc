@@ -292,7 +292,7 @@ class MultiPipeTest : public TlbTest {
 
   void SubscribeRead(tlb_on_event *on_event, void *userdata) {
     for (const auto &pipe : pipes) {
-      tlb_handle handle = tlb_evl_add_fd(loop(), pipe.fd_read, TLB_EV_READ, on_event, userdata);
+      tlb_handle handle = tlb_evl_add_fd(loop(), pipe.fd_read, TLB_EV_READ, true, on_event, userdata);
       ASSERT_NE(nullptr, handle);
       open_subscriptions.emplace(handle);
     }
@@ -300,7 +300,7 @@ class MultiPipeTest : public TlbTest {
 
   void SubscribeWrite(tlb_on_event *on_event, void *userdata) {
     for (const auto &pipe : pipes) {
-      tlb_handle handle = tlb_evl_add_fd(loop(), pipe.fd_write, TLB_EV_WRITE, on_event, userdata);
+      tlb_handle handle = tlb_evl_add_fd(loop(), pipe.fd_write, TLB_EV_WRITE, true, on_event, userdata);
       ASSERT_NE(nullptr, handle);
       open_subscriptions.emplace(handle);
     }
