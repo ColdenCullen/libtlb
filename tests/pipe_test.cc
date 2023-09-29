@@ -359,7 +359,7 @@ TEST_P(MultiPipeTest, Readible) {
         if (new_read_count == kTargetReadCount) {
           auto lock = state->test->lock();
           state->test->notify();
-        } else {
+        } else if (new_read_count < kTargetReadCount) {
           state->test->Write(new_read_count);
         }
       },
