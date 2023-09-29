@@ -43,7 +43,6 @@ struct tlb *tlb_new(struct tlb_allocator *alloc, struct tlb_options options) {
   tlb->options = options;
 
   TLB_CHECK_GOTO(0 ==, tlb_evl_init(&tlb->super_loop, alloc), evl_init_failed);
-  tlb->super_loop.super_loop = true;
 
   /* Setup the pipe used to stop threads. */
   TLB_CHECK_GOTO(0 ==, tlb_pipe_open(&tlb->thread_stop_pipe), pipe_open_failed);
@@ -52,7 +51,7 @@ struct tlb *tlb_new(struct tlb_allocator *alloc, struct tlb_options options) {
       .on_event = s_thread_stop,
       .userdata = tlb,
       .events = TLB_EV_READ,
-      .sub_mode = TLB_SUB_EDGE, /* Don't use oneshot here, or rapidly stopping threads will be racey */
+      .sub_mode = TLB_SUB_EDGE,
       .name = "tlb_thread_stop_pipe",
   };
   tlb_evl_impl_fd_init(&tlb->thread_stop_sub);

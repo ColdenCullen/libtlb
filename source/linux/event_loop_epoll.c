@@ -50,11 +50,10 @@ uint32_t s_events_to_epoll(struct tlb_subscription *sub) {
     epoll_events |= EPOLLOUT;
   }
 
+  /* All subscriptions are "oneshot" subscriptions */
+  epoll_events |= EPOLLONESHOT;
   if (sub->sub_mode & TLB_SUB_EDGE) {
     epoll_events |= EPOLLET;
-  }
-  if (sub->sub_mode & TLB_SUB_ONESHOT) {
-    epoll_events |= EPOLLONESHOT;
   }
 
   return epoll_events;
@@ -111,7 +110,7 @@ void tlb_evl_impl_timer_init(struct tlb_subscription *sub, int timeout) {
 
   sub->ident.fd = timerfd;
   sub->events = TLB_EV_READ;
-  sub->sub_mode |= TLB_SUB_EDGE | TLB_SUB_ONESHOT;
+  sub->sub_mode |= TLB_SUB_EDGE;
 
   sub->platform.epoll.close = true;
   sub->platform.epoll.on_event = sub->on_event;
@@ -124,7 +123,7 @@ static void s_timer_on_event(tlb_handle subscription, int events, void *userdata
   sub->platform.epoll.on_event(subscription, events, userdata);
 
   /* Clean up after the timer */
-  sub->oneshot_state = TLB_STATE_UNSUBBED;
+  sub->state = TLB_STATE_UNSUBBED;
 }
 
 /**********************************************************************************************************************
@@ -167,31 +166,28 @@ int tlb_evl_handle_events(struct tlb_event_loop *loop, size_t budget, int timeou
     TLB_LOG_EVENT(sub, "Handling");
 
     /* Cache this off because sub can become invalid during on_event */
-    const bool is_oneshot = sub->sub_mode & TLB_SUB_ONESHOT;
-    sub->oneshot_state = TLB_STATE_RUNNING;
+    sub->state = TLB_STATE_RUNNING;
     sub->on_event(sub, s_events_from_epoll(event), sub->userdata);
 
-    if (is_oneshot) {
-      switch ((enum tlb_sub_state)sub->oneshot_state) {
-        case TLB_STATE_SUBBED:
-          /* Not possible */
-          TLB_LOG_EVENT(sub, "In bad state!");
-          TLB_ASSERT(false);
-          break;
+    switch ((enum tlb_sub_state)sub->state) {
+      case TLB_STATE_SUBBED:
+        /* Not possible */
+        TLB_LOG_EVENT(sub, "In bad state!");
+        TLB_ASSERT(false);
+        break;
 
-        case TLB_STATE_RUNNING:
-          /* Resubscribe the event */
-          s_epoll_change(loop, sub, EPOLL_CTL_MOD);
-          sub->oneshot_state = TLB_STATE_SUBBED;
-          TLB_LOG_EVENT(sub, "Set to SUBBED");
-          break;
+      case TLB_STATE_RUNNING:
+        /* Resubscribe the event */
+        s_epoll_change(loop, sub, EPOLL_CTL_MOD);
+        sub->state = TLB_STATE_SUBBED;
+        TLB_LOG_EVENT(sub, "Set to SUBBED");
+        break;
 
-        case TLB_STATE_UNSUBBED:
-          /* Force-remove the subscription */
-          sub->oneshot_state = TLB_STATE_SUBBED;
-          tlb_evl_remove(loop, sub);
-          break;
-      }
+      case TLB_STATE_UNSUBBED:
+        /* Force-remove the subscription */
+        sub->state = TLB_STATE_SUBBED;
+        tlb_evl_remove(loop, sub);
+        break;
     }
   }
 
