@@ -178,9 +178,10 @@ int tlb_evl_handle_events(struct tlb_event_loop *loop, size_t budget, int timeou
 
       case TLB_STATE_RUNNING:
         /* Resubscribe the event */
-        s_epoll_change(loop, sub, EPOLL_CTL_MOD);
         sub->state = TLB_STATE_SUBBED;
         TLB_LOG_EVENT(sub, "Set to SUBBED");
+        /* This line needs to be last here to prevent race conditions */
+        s_epoll_change(loop, sub, EPOLL_CTL_MOD);
         break;
 
       case TLB_STATE_UNSUBBED:
